@@ -23,6 +23,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <cuda/stream_ref>
 
 namespace rmm {
 
@@ -60,6 +61,11 @@ class cuda_stream_view {
    * @brief Implicit conversion to cudaStream_t.
    */
   constexpr operator cudaStream_t() const noexcept { return value(); }
+  
+  /**
+   * @brief Implicit conversion to stream_ref.
+   */
+  operator cuda::stream_ref() const noexcept { return value(); }
 
   /**
    * @brief Return true if the wrapped stream is the CUDA per-thread default stream.

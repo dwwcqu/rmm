@@ -30,16 +30,15 @@ namespace rmm::mr {
  *
  * See https://devblogs.nvidia.com/how-optimize-data-transfers-cuda-cc/
  */
-class pinned_memory_resource final : public host_memory_resource {
+class pinned_memory_resource final : public host_memory_resource<pinned_memory_resource> {
  public:
-  pinned_memory_resource()                              = default;
-  ~pinned_memory_resource() override                    = default;
-  pinned_memory_resource(pinned_memory_resource const&) = default;
-  pinned_memory_resource(pinned_memory_resource&&)      = default;
+  pinned_memory_resource()                                         = default;
+  ~pinned_memory_resource() override                               = default;
+  pinned_memory_resource(pinned_memory_resource const&)            = default;
+  pinned_memory_resource(pinned_memory_resource&&)                 = default;
   pinned_memory_resource& operator=(pinned_memory_resource const&) = default;
-  pinned_memory_resource& operator=(pinned_memory_resource&&) = default;
+  pinned_memory_resource& operator=(pinned_memory_resource&&)      = default;
 
- private:
   /**
    * @brief Allocates pinned memory on the host of size at least `bytes` bytes.
    *
@@ -52,7 +51,7 @@ class pinned_memory_resource final : public host_memory_resource {
    * @param alignment Alignment of the allocation
    * @return void* Pointer to the newly allocated memory
    */
-  void* do_allocate(std::size_t bytes, std::size_t alignment = alignof(std::max_align_t)) override
+  void* allocate(std::size_t bytes, std::size_t alignment = alignof(std::max_align_t))
   {
     // don't allocate anything if the user requested zero bytes
     if (0 == bytes) { return nullptr; }
@@ -85,9 +84,9 @@ class pinned_memory_resource final : public host_memory_resource {
    * @param alignment Alignment of the allocation. This must be equal to the value of `alignment`
    *                  that was passed to the `allocate` call that returned `ptr`.
    */
-  void do_deallocate(void* ptr,
-                     std::size_t bytes,
-                     std::size_t alignment = alignof(std::max_align_t)) override
+  void deallocate(void* ptr,
+                  std::size_t bytes,
+                  std::size_t alignment = alignof(std::max_align_t))
   {
     if (nullptr == ptr) { return; }
     rmm::detail::aligned_deallocate(

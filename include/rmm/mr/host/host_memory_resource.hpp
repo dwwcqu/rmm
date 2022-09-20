@@ -18,6 +18,8 @@
 #include <cstddef>
 #include <utility>
 
+#include <cuda/memory_resource>
+
 namespace rmm::mr {
 
 /**
@@ -26,24 +28,11 @@ namespace rmm::mr {
  * This is based on `std::pmr::memory_resource`:
  * https://en.cppreference.com/w/cpp/memory/memory_resource
  *
- * When C++17 is available for use in RMM, `rmm::host_memory_resource` should
- * inherit from `std::pmr::memory_resource`.
- *
- * This class serves as the interface that all host memory resource
- * implementations must satisfy.
- *
- * There are two private, pure virtual functions that all derived classes must
- * implement: `do_allocate` and `do_deallocate`. Optionally, derived classes may
- * also override `is_equal`. By default, `is_equal` simply performs an identity
- * comparison.
- *
- * The public, non-virtual functions `allocate`, `deallocate`, and `is_equal`
- * simply call the private virtual functions. The reason for this is to allow
- * implementing shared, default behavior in the base class. For example, the
- * base class' `allocate` function may log every allocation, no matter what
- * derived class implementation is used.
+ * This class acts as a convenience utility class that handles equality_comparable_with and 
+ * defines the `host_accessible` property
  *
  */
+template <class Derived>
 class host_memory_resource {
  public:
   host_memory_resource()                            = default;
@@ -54,110 +43,41 @@ class host_memory_resource {
   host_memory_resource& operator=(host_memory_resource&&) noexcept = default;
 
   /**
-   * @brief Allocates memory on the host of size at least `bytes` bytes.
-   *
-   * The returned storage is aligned to the specified `alignment` if supported, and to
-   * `alignof(std::max_align_t)` otherwise.
-   *
-   * @throws std::bad_alloc When the requested `bytes` and `alignment` cannot be allocated.
-   *
-   * @param bytes The size of the allocation
-   * @param alignment Alignment of the allocation
-   * @return void* Pointer to the newly allocated memory
-   */
-  void* allocate(std::size_t bytes, std::size_t alignment = alignof(std::max_align_t))
-  {
-    return do_allocate(bytes, alignment);
-  }
-
-  /**
-   * @brief Deallocate memory pointed to by `ptr`.
-   *
-   * `ptr` must have been returned by a prior call to `allocate(bytes,alignment)` on a
-   * `host_memory_resource` that compares equal to `*this`, and the storage it points to must not
-   * yet have been deallocated, otherwise behavior is undefined.
-   *
-   * @throws Nothing.
-   *
-   * @param ptr Pointer to be deallocated
-   * @param bytes The size in bytes of the allocation. This must be equal to the value of `bytes`
-   *              that was passed to the `allocate` call that returned `ptr`.
-   * @param alignment Alignment of the allocation. This must be equal to the value of `alignment`
-   *                  that was passed to the `allocate` call that returned `ptr`.
-   * @param stream Stream on which to perform deallocation
-   */
-  void deallocate(void* ptr, std::size_t bytes, std::size_t alignment = alignof(std::max_align_t))
-  {
-    do_deallocate(ptr, bytes, alignment);
-  }
-
-  /**
-   * @brief Compare this resource to another.
-   *
-   * Two `host_memory_resource`s compare equal if and only if memory allocated from one
-   * `host_memory_resource` can be deallocated from the other and vice versa.
-   *
-   * By default, simply checks if \p *this and \p other refer to the same object, i.e., does not
-   * check if they are two objects of the same class.
-   *
-   * @param other The other resource to compare to
-   * @returns true if the two resources are equivalent
-   */
-  [[nodiscard]] bool is_equal(host_memory_resource const& other) const noexcept
-  {
-    return do_is_equal(other);
-  }
-
- private:
-  /**
-   * @brief Allocates memory on the host of size at least `bytes` bytes.
-   *
-   * The returned storage is aligned to the specified `alignment` if supported, and to
-   * `alignof(std::max_align_t)` otherwise.
-   *
-   * @throws std::bad_alloc When the requested `bytes` and `alignment` cannot be allocated.
-   *
-   * @param bytes The size of the allocation
-   * @param alignment Alignment of the allocation
-   * @return void* Pointer to the newly allocated memory
-   */
-  virtual void* do_allocate(std::size_t bytes,
-                            std::size_t alignment = alignof(std::max_align_t)) = 0;
-
-  /**
-   * @brief Deallocate memory pointed to by `ptr`.
-   *
-   * `ptr` must have been returned by a prior call to `allocate(bytes,alignment)` on a
-   * `host_memory_resource` that compares equal to `*this`, and the storage it points to must not
-   * yet have been deallocated, otherwise behavior is undefined.
-   *
-   * @throws Nothing.
-   *
-   * @param ptr Pointer to be deallocated
-   * @param bytes The size in bytes of the allocation. This must be equal to the value of `bytes`
-   *              that was passed to the `allocate` call that returned `ptr`.
-   * @param alignment Alignment of the allocation. This must be equal to the value of `alignment`
-   *                  that was passed to the `allocate` call that returned `ptr`.
-   */
-  virtual void do_deallocate(void* ptr,
-                             std::size_t bytes,
-                             std::size_t alignment = alignof(std::max_align_t)) = 0;
-
-  /**
    * @brief Compare this resource to another.
    *
    * Two host_memory_resources compare equal if and only if memory allocated from one
    * host_memory_resource can be deallocated from the other and vice versa.
    *
-   * By default, simply checks if `*this` and `other` refer to the same object, i.e., does not check
+   * By default, simply checks if `left` and `right` refer to the same object, i.e., does not check
    * whether they are two objects of the same class.
    *
-   * @param other The other resource to compare to
+   * @param left This resource
+   * @param right The other resource to compare to
    * @return true If the two resources are equivalent
    */
-  [[nodiscard]] virtual bool do_is_equal(host_memory_resource const& other) const noexcept
-  {
-    return this == &other;
+  template<class Other, std::enable_if_t<std::is_same_v<Other, Derived>, int> = 0>
+  [[nodiscard]] friend bool operator==(const Derived& left, const Other& right) noexcept {
+      return &left == &right;
   }
+
+  /**
+   * @brief Compare this resource to another.
+   * 
+   * This synthesizes the inequality operator in case there is non defined but equality is defined
+   *
+   * @param left A resource of derived type
+   * @param right A different compatible resource
+   * @returns If the two resources are not equivalent
+   */
+  template<class T, class = std::void_t<decltype(std::declval<const Derived&>() == std::declval<const T&>())>>
+  [[nodiscard]] friend bool operator!=(const Derived& left, const T& right) noexcept {
+      return !(left == right);
+  }
+  
+  /**
+   * @brief Signal that this resource allocates host accessible memory.
+   */
+  friend void get_property(Derived const&, cuda::mr::host_accessible) noexcept
+  {}
 };
 }  // namespace rmm::mr

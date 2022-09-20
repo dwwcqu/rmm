@@ -72,9 +72,10 @@ struct allocation {
 };
 }  // namespace
 
-template <typename MemoryResourceType>
+template <typename MemoryResourceType, 
+  std::enable_if_t<cuda::mr::resource_with<MemoryResourceType, cuda::mr::host_accessible>, int> = 0>
 struct MRTest : public ::testing::Test {
-  std::unique_ptr<rmm::mr::host_memory_resource> mr;
+  std::unique_ptr<MemoryResourceType> mr;
 
   MRTest() : mr{new MemoryResourceType} {}
 };
@@ -83,7 +84,7 @@ using resources = ::testing::Types<rmm::mr::new_delete_resource, rmm::mr::pinned
 
 TYPED_TEST_CASE(MRTest, resources);
 
-TYPED_TEST(MRTest, SelfEquality) { EXPECT_TRUE(this->mr->is_equal(*this->mr)); }
+TYPED_TEST(MRTest, SelfEquality) { EXPECT_TRUE(*this->mr == *this->mr); }
 
 TYPED_TEST(MRTest, AllocateZeroBytes)
 {

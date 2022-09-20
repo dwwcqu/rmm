@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <utility>
 
+#include <cuda/memory_resource>
+
 namespace rmm::mr {
 
 /**
@@ -100,10 +102,32 @@ class device_memory_resource {
    * the specified `stream`.
    *
    * @param bytes The size of the allocation
+   * @param alignment The desired alignment, will be rounded up to `allocation_size_alignment`
    * @param stream Stream on which to perform allocation
    * @return void* Pointer to the newly allocated memory
    */
-  void* allocate(std::size_t bytes, cuda_stream_view stream = cuda_stream_view{})
+  void* allocate(std::size_t bytes, std::size_t alignment = 0)
+  {
+    const auto align = std::min(allocation_size_alignment, alignment);
+    return do_allocate(rmm::detail::align_up(bytes, align), cuda_stream_view{});
+  }
+
+  /**
+   * @brief Allocates memory of size at least \p bytes.
+   *
+   * The returned pointer will have at minimum 256 byte alignment.
+   *
+   * If supported, this operation may optionally be executed on a stream.
+   * Otherwise, the stream is ignored and the null stream is used.
+   *
+   * @throws `rmm::bad_alloc` When the requested `bytes` cannot be allocated on
+   * the specified `stream`.
+   *
+   * @param bytes The size of the allocation
+   * @param stream Stream on which to perform allocation
+   * @return void* Pointer to the newly allocated memory
+   */
+  void* allocate(std::size_t bytes, cuda_stream_view stream)
   {
     return do_allocate(rmm::detail::align_up(bytes, allocation_size_alignment), stream);
   }
@@ -124,9 +148,34 @@ class device_memory_resource {
    * @param p Pointer to be deallocated
    * @param bytes The size in bytes of the allocation. This must be equal to the
    * value of `bytes` that was passed to the `allocate` call that returned `p`.
+   * @param alignment The alignment of the allocation. must be the one passed to `allocate`
    * @param stream Stream on which to perform deallocation
    */
-  void deallocate(void* ptr, std::size_t bytes, cuda_stream_view stream = cuda_stream_view{})
+  void deallocate(void* ptr, std::size_t bytes, std::size_t alignment = 0)
+  {
+    const auto align = std::min(allocation_size_alignment, alignment);
+    do_deallocate(ptr, rmm::detail::align_up(bytes, align), cuda_stream_view{});
+  }
+
+  /**
+   * @brief Deallocate memory pointed to by \p p.
+   *
+   * `p` must have been returned by a prior call to `allocate(bytes,stream)` on
+   * a `device_memory_resource` that compares equal to `*this`, and the storage
+   * it points to must not yet have been deallocated, otherwise behavior is
+   * undefined.
+   *
+   * If supported, this operation may optionally be executed on a stream.
+   * Otherwise, the stream is ignored and the null stream is used.
+   *
+   * @throws Nothing.
+   *
+   * @param p Pointer to be deallocated
+   * @param bytes The size in bytes of the allocation. This must be equal to the
+   * value of `bytes` that was passed to the `allocate` call that returned `p`.
+   * @param stream Stream on which to perform deallocation
+   */
+  void deallocate(void* ptr, std::size_t bytes, cuda_stream_view stream)
   {
     do_deallocate(ptr, rmm::detail::align_up(bytes, allocation_size_alignment), stream);
   }
@@ -147,6 +196,42 @@ class device_memory_resource {
   [[nodiscard]] bool is_equal(device_memory_resource const& other) const noexcept
   {
     return do_is_equal(other);
+  }
+  
+  /**
+   * @brief Compare this resource to another.
+   *
+   * Two device_memory_resources compare equal if and only if memory allocated
+   * from one device_memory_resource can be deallocated from the other and vice
+   * versa.
+   *
+   * By default, simply checks if \p *this and \p other refer to the same
+   * object, i.e., does not check if they are two objects of the same class.
+   *
+   * @param other The other resource to compare to
+   * @returns If the two resources are equivalent
+   */
+  [[nodiscard]] bool operator==(device_memory_resource const& other) const noexcept
+  {
+    return do_is_equal(other);
+  }
+  
+  /**
+   * @brief Compare this resource to another.
+   *
+   * Two device_memory_resources compare equal if and only if memory allocated
+   * from one device_memory_resource can be deallocated from the other and vice
+   * versa.
+   *
+   * By default, simply checks if \p *this and \p other do not refer to the same
+   * object, i.e., does not check if they are two objects of the same class.
+   *
+   * @param other The other resource to compare to
+   * @returns If the two resources are equivalent
+   */
+  [[nodiscard]] bool operator!=(device_memory_resource const& other) const noexcept
+  {
+    return !do_is_equal(other);
   }
 
   /**
@@ -176,6 +261,12 @@ class device_memory_resource {
   {
     return do_get_mem_info(stream);
   }
+  
+  /**
+   * @brief Signal that this resource allocates device accessible memory.
+   */
+  friend void get_property(device_memory_resource const&, cuda::mr::device_accessible) noexcept
+  {}
 
  private:
   // All allocations are padded to a multiple of allocation_size_alignment bytes.

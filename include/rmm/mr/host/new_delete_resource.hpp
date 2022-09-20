@@ -28,16 +28,15 @@ namespace rmm::mr {
  * @brief A `host_memory_resource` that uses the global `operator new` and `operator delete` to
  * allocate host memory.
  */
-class new_delete_resource final : public host_memory_resource {
+class new_delete_resource final : public host_memory_resource<new_delete_resource> {
  public:
-  new_delete_resource()                           = default;
-  ~new_delete_resource() override                 = default;
-  new_delete_resource(new_delete_resource const&) = default;
-  new_delete_resource(new_delete_resource&&)      = default;
+  new_delete_resource()                                      = default;
+  ~new_delete_resource() override                            = default;
+  new_delete_resource(new_delete_resource const&)            = default;
+  new_delete_resource(new_delete_resource&&)                 = default;
   new_delete_resource& operator=(new_delete_resource const&) = default;
-  new_delete_resource& operator=(new_delete_resource&&) = default;
+  new_delete_resource& operator=(new_delete_resource&&)      = default;
 
- private:
   /**
    * @brief Allocates memory on the host of size at least `bytes` bytes.
    *
@@ -50,8 +49,7 @@ class new_delete_resource final : public host_memory_resource {
    * @param alignment Alignment of the allocation
    * @return Pointer to the newly allocated memory
    */
-  void* do_allocate(std::size_t bytes,
-                    std::size_t alignment = rmm::detail::RMM_DEFAULT_HOST_ALIGNMENT) override
+  void* allocate(std::size_t bytes, std::size_t alignment = rmm::detail::RMM_DEFAULT_HOST_ALIGNMENT)
   {
     // If the requested alignment isn't supported, use default
     alignment = (rmm::detail::is_supported_alignment(alignment))
@@ -77,9 +75,9 @@ class new_delete_resource final : public host_memory_resource {
    * @param alignment Alignment of the allocation. This must be equal to the value of `alignment`
    *                  that was passed to the `allocate` call that returned `ptr`.
    */
-  void do_deallocate(void* ptr,
-                     std::size_t bytes,
-                     std::size_t alignment = rmm::detail::RMM_DEFAULT_HOST_ALIGNMENT) override
+  void deallocate(void* ptr,
+                  std::size_t bytes,
+                  std::size_t alignment = rmm::detail::RMM_DEFAULT_HOST_ALIGNMENT)
   {
     rmm::detail::aligned_deallocate(
       ptr, bytes, alignment, [](void* ptr) { ::operator delete(ptr); });
