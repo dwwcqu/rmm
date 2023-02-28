@@ -23,6 +23,7 @@ include(${CMAKE_BINARY_DIR}/RAPIDS.cmake)
 project(
   rmm-python
   VERSION ${rmm_version}
+  # TODO: See if we can remove the C language when switching to scikit-build-core.
   LANGUAGES # TODO: Building Python extension modules via the python_extension_module requires the C
             # language to be enabled here. The test project that is built in scikit-build to verify
             # various linking options for the python library is hardcoded to build with C, so until
