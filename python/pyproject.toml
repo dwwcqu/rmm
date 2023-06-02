@@ -113,8 +113,8 @@ skip = [
 ]
 
 [tool.scikit-build]
-# TODO: There doesn't appear to be any way to be more specific about requirements.
-cmake.minimum_version = "3.23.1"
+# TODO: There doesn't appear to be any way to be more specific about requirements, i.e. we can't skip specific versions if they are broken.
+cmake.minimum-version = "3.23.1"
 ninja.make-fallback = true
 cmake.build-type = "Release"
 sdist.reproducible = true
