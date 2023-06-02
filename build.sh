@@ -178,6 +178,6 @@ if (( NUMARGS == 0 )) || hasArg rmm; then
     export INSTALL_PREFIX
     echo "building rmm..."
 
-    SKBUILD_CONFIGURE_OPTIONS="-DCMAKE_PREFIX_PATH=${INSTALL_PREFIX} ${EXTRA_CMAKE_ARGS}" \
+    SKBUILD_CMAKE_ARGS="-DCMAKE_PREFIX_PATH=${INSTALL_PREFIX} ${EXTRA_CMAKE_ARGS}" \
         python -m pip install .
 fi
