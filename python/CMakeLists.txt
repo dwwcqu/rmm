@@ -16,6 +16,8 @@ cmake_minimum_required(VERSION 3.23.1 FATAL_ERROR)
 
 set(rmm_version 23.08.00)
 
+set(rapids-cmake-repo "vyasr/rapids-cmake")
+set(rapids-cmake-branch "feat/scikit-build-core")
 file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-23.08/RAPIDS.cmake
      ${CMAKE_BINARY_DIR}/RAPIDS.cmake)
 include(${CMAKE_BINARY_DIR}/RAPIDS.cmake)
@@ -56,7 +58,7 @@ if(NOT rmm_FOUND)
   add_subdirectory(../ rmm-cpp ${_exclude_from_all})
 endif()
 
-include(rapids-cython)
+include(rapids-cython-core)
 rapids_cython_init()
 
 add_subdirectory(rmm/_cuda)
