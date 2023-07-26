@@ -19,7 +19,7 @@
 #include <rmm/cuda_stream_view.hpp>
 #include <rmm/detail/error.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <memory>
 
@@ -30,39 +30,39 @@ namespace rmm {
  *
  * Provides RAII lifetime semantics for a CUDA stream.
  */
-class cuda_stream {
+class hip_stream {
  public:
   /**
    * @brief Move constructor (default)
    *
-   * A moved-from cuda_stream is invalid and it is Undefined Behavior to call methods that access
+   * A moved-from hip_stream is invalid and it is Undefined Behavior to call methods that access
    * the owned stream.
    */
-  cuda_stream(cuda_stream&&) = default;
+  hip_stream(hip_stream&&) = default;
   /**
    * @brief Move copy assignment operator (default)
    *
-   * A moved-from cuda_stream is invalid and it is Undefined Behavior to call methods that access
+   * A moved-from hip_stream is invalid and it is Undefined Behavior to call methods that access
    * the owned stream.
    */
-  cuda_stream& operator=(cuda_stream&&) = default;
-  ~cuda_stream()                        = default;
-  cuda_stream(cuda_stream const&)       = delete;  // Copying disallowed: one stream one owner
-  cuda_stream& operator=(cuda_stream&) = delete;
+  hip_stream& operator=(hip_stream&&) = default;
+  ~hip_stream()                        = default;
+  hip_stream(hip_stream const&)       = delete;  // Copying disallowed: one stream one owner
+  hip_stream& operator=(hip_stream&) = delete;
 
   /**
    * @brief Construct a new cuda stream object
    *
    * @throw rmm::cuda_error if stream creation fails
    */
-  cuda_stream()
+  hip_stream()
     : stream_{[]() {
-                auto* stream = new cudaStream_t;  // NOLINT(cppcoreguidelines-owning-memory)
-                RMM_CUDA_TRY(cudaStreamCreate(stream));
+                auto* stream = new hipStream_t;  // NOLINT(cppcoreguidelines-owning-memory)
+                RMM_CUDA_TRY(hipStreamCreate(stream));
                 return stream;
               }(),
-              [](cudaStream_t* stream) {
-                RMM_ASSERT_CUDA_SUCCESS(cudaStreamDestroy(*stream));
+              [](hipStream_t* stream) {
+                RMM_ASSERT_CUDA_SUCCESS(hipStreamDestroy(*stream));
                 delete stream;  // NOLINT(cppcoreguidelines-owning-memory)
               }}
   {
@@ -79,18 +79,18 @@ class cuda_stream {
   /**
    * @brief Get the value of the wrapped CUDA stream.
    *
-   * @return cudaStream_t The wrapped CUDA stream.
+   * @return hipStream_t The wrapped CUDA stream.
    */
-  [[nodiscard]] cudaStream_t value() const
+  [[nodiscard]] hipStream_t value() const
   {
     RMM_LOGGING_ASSERT(is_valid());
     return *stream_;
   }
 
   /**
-   * @brief Explicit conversion to cudaStream_t.
+   * @brief Explicit conversion to hipStream_t.
    */
-  explicit operator cudaStream_t() const noexcept { return value(); }
+  explicit operator hipStream_t() const noexcept { return value(); }
 
   /**
    * @brief Creates an immutable, non-owning view of the wrapped CUDA stream.
@@ -109,24 +109,24 @@ class cuda_stream {
   /**
    * @brief Synchronize the owned CUDA stream.
    *
-   * Calls `cudaStreamSynchronize()`.
+   * Calls `hipStreamSynchronize()`.
    *
    * @throw rmm::cuda_error if stream synchronization fails
    */
-  void synchronize() const { RMM_CUDA_TRY(cudaStreamSynchronize(value())); }
+  void synchronize() const { RMM_CUDA_TRY(hipStreamSynchronize(value())); }
 
   /**
    * @brief Synchronize the owned CUDA stream. Does not throw if there is an error.
    *
-   * Calls `cudaStreamSynchronize()` and asserts if there is an error.
+   * Calls `hipStreamSynchronize()` and asserts if there is an error.
    */
   void synchronize_no_throw() const noexcept
   {
-    RMM_ASSERT_CUDA_SUCCESS(cudaStreamSynchronize(value()));
+    RMM_ASSERT_CUDA_SUCCESS(hipStreamSynchronize(value()));
   }
 
  private:
-  std::unique_ptr<cudaStream_t, std::function<void(cudaStream_t*)>> stream_;
+  std::unique_ptr<hipStream_t, std::function<void(hipStream_t*)>> stream_;
 };
 
 }  // namespace rmm

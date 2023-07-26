@@ -22,7 +22,7 @@
 #include <rmm/detail/error.hpp>
 #include <rmm/logger.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <fmt/core.h>
 #include <spdlog/common.h>

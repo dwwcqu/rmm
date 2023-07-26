@@ -170,7 +170,7 @@ class device_uvector {
   /**
    * @brief Performs an asynchronous copy of `v` to the specified element in device memory.
    *
-   * This specialization for fundamental types is optimized to use `cudaMemsetAsync` when
+   * This specialization for fundamental types is optimized to use `hipMemsetAsync` when
    * `host_value` is zero.
    *
    * This function does not synchronize stream `s` before returning. Therefore, the object
@@ -192,7 +192,7 @@ class device_uvector {
    * // Copies 42 to element 0 on `stream`. Does _not_ synchronize
    * vec.set_element_async(0, v, stream);
    * ...
-   * cudaStreamSynchronize(stream);
+   * hipStreamSynchronize(stream);
    * // Synchronization is required before `v` can be modified
    * v = 13;
    * \endcode
@@ -212,7 +212,7 @@ class device_uvector {
 
     if constexpr (std::is_same<value_type, bool>::value) {
       RMM_CUDA_TRY(
-        cudaMemsetAsync(element_ptr(element_index), value, sizeof(value), stream.value()));
+        hipMemsetAsync(element_ptr(element_index), value, sizeof(value), stream.value()));
       return;
     }
 
@@ -223,8 +223,8 @@ class device_uvector {
       }
     }
 
-    RMM_CUDA_TRY(cudaMemcpyAsync(
-      element_ptr(element_index), &value, sizeof(value), cudaMemcpyDefault, stream.value()));
+    RMM_CUDA_TRY(hipMemcpyAsync(
+      element_ptr(element_index), &value, sizeof(value), hipMemcpyDefault, stream.value()));
   }
 
   // We delete the r-value reference overload to prevent asynchronously copying from a literal or
@@ -258,7 +258,7 @@ class device_uvector {
     RMM_EXPECTS(
       element_index < size(), rmm::out_of_range, "Attempt to access out of bounds element.");
     RMM_CUDA_TRY(
-      cudaMemsetAsync(element_ptr(element_index), 0, sizeof(value_type), stream.value()));
+      hipMemsetAsync(element_ptr(element_index), 0, sizeof(value_type), stream.value()));
   }
 
   /**
@@ -313,8 +313,8 @@ class device_uvector {
     RMM_EXPECTS(
       element_index < size(), rmm::out_of_range, "Attempt to access out of bounds element.");
     value_type value;
-    RMM_CUDA_TRY(cudaMemcpyAsync(
-      &value, element_ptr(element_index), sizeof(value), cudaMemcpyDefault, stream.value()));
+    RMM_CUDA_TRY(hipMemcpyAsync(
+      &value, element_ptr(element_index), sizeof(value), hipMemcpyDefault, stream.value()));
     stream.synchronize();
     return value;
   }

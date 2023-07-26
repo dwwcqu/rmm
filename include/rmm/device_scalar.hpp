@@ -73,7 +73,7 @@ class device_scalar {
    *
    * @note This device_scalar is only safe to access in kernels and copies on the specified CUDA
    * stream, or on another stream only if a dependency is enforced (e.g. using
-   * `cudaStreamWaitEvent()`).
+   * `hipStreamWaitEvent()`).
    *
    * @throws `rmm::bad_alloc` if allocating the device memory fails.
    *
@@ -94,7 +94,7 @@ class device_scalar {
    *
    * @note This device_scalar is only safe to access in kernels and copies on the specified CUDA
    * stream, or on another stream only if a dependency is enforced (e.g. using
-   * `cudaStreamWaitEvent()`).
+   * `hipStreamWaitEvent()`).
    *
    * @throws `rmm::bad_alloc` if allocating the device memory for `initial_value` fails.
    * @throws `rmm::cuda_error` if copying `initial_value` to device memory fails.
@@ -138,7 +138,7 @@ class device_scalar {
    *
    * @note If the stream specified to this function is different from the stream specified
    * to the constructor, then an appropriate dependency must be inserted between the streams
-   * (e.g. using `cudaStreamWaitEvent()` or `cudaStreamSynchronize()`) before calling this function,
+   * (e.g. using `hipStreamWaitEvent()` or `hipStreamSynchronize()`) before calling this function,
    * otherwise there may be a race condition.
    *
    * @throws `rmm::cuda_error` If the copy fails.
@@ -155,12 +155,12 @@ class device_scalar {
   /**
    * @brief Sets the value of the `device_scalar` to the value of `v`.
    *
-   * This specialization for fundamental types is optimized to use `cudaMemsetAsync` when
+   * This specialization for fundamental types is optimized to use `hipMemsetAsync` when
    * `v` is zero.
    *
    * @note If the stream specified to this function is different from the stream specified
    * to the constructor, then appropriate dependencies must be inserted between the streams
-   * (e.g. using `cudaStreamWaitEvent()` or `cudaStreamSynchronize()`) before and after calling
+   * (e.g. using `hipStreamWaitEvent()` or `hipStreamSynchronize()`) before and after calling
    * this function, otherwise there may be a race condition.
    *
    * This function does not synchronize `stream` before returning. Therefore, the object
@@ -179,7 +179,7 @@ class device_scalar {
    * // Copies 42 to device storage on `stream`. Does _not_ synchronize
    * vec.set_value_async(v, stream);
    * ...
-   * cudaStreamSynchronize(stream);
+   * hipStreamSynchronize(stream);
    * // Synchronization is required before `v` can be modified
    * v = 13;
    * \endcode
@@ -203,7 +203,7 @@ class device_scalar {
    *
    * @note If the stream specified to this function is different from the stream specified
    * to the constructor, then appropriate dependencies must be inserted between the streams
-   * (e.g. using `cudaStreamWaitEvent()` or `cudaStreamSynchronize()`) before and after calling
+   * (e.g. using `hipStreamWaitEvent()` or `hipStreamSynchronize()`) before and after calling
    * this function, otherwise there may be a race condition.
    *
    * This function does not synchronize `stream` before returning.
@@ -222,7 +222,7 @@ class device_scalar {
    *
    * @note If the returned device pointer is used on a CUDA stream different from the stream
    * specified to the constructor, then appropriate dependencies must be inserted between the
-   * streams (e.g. using `cudaStreamWaitEvent()` or `cudaStreamSynchronize()`), otherwise there may
+   * streams (e.g. using `hipStreamWaitEvent()` or `hipStreamSynchronize()`), otherwise there may
    * be a race condition.
    */
   [[nodiscard]] pointer data() noexcept { return static_cast<pointer>(_storage.data()); }
@@ -232,7 +232,7 @@ class device_scalar {
    *
    * @note If the returned device pointer is used on a CUDA stream different from the stream
    * specified to the constructor, then appropriate dependencies must be inserted between the
-   * streams (e.g. using `cudaStreamWaitEvent()` or `cudaStreamSynchronize()`), otherwise there may
+   * streams (e.g. using `hipStreamWaitEvent()` or `hipStreamSynchronize()`), otherwise there may
    * be a race condition.
    */
   [[nodiscard]] const_pointer data() const noexcept

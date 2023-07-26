@@ -18,7 +18,7 @@
 
 #include <rmm/detail/error.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <atomic>
 #include <cstddef>
@@ -45,21 +45,21 @@ class cuda_stream_view {
   constexpr cuda_stream_view(std::nullptr_t) = delete;  //< Prevent cast from nullptr
 
   /**
-   * @brief Implicit conversion from cudaStream_t.
+   * @brief Implicit conversion from hipStream_t.
    */
-  constexpr cuda_stream_view(cudaStream_t stream) noexcept : stream_{stream} {}
+  constexpr cuda_stream_view(hipStream_t stream) noexcept : stream_{stream} {}
 
   /**
    * @brief Get the wrapped stream.
    *
-   * @return cudaStream_t The wrapped stream.
+   * @return hipStream_t The wrapped stream.
    */
-  [[nodiscard]] constexpr cudaStream_t value() const noexcept { return stream_; }
+  [[nodiscard]] constexpr hipStream_t value() const noexcept { return stream_; }
 
   /**
-   * @brief Implicit conversion to cudaStream_t.
+   * @brief Implicit conversion to hipStream_t.
    */
-  constexpr operator cudaStream_t() const noexcept { return value(); }
+  constexpr operator hipStream_t() const noexcept { return value(); }
 
   /**
    * @brief Return true if the wrapped stream is the CUDA per-thread default stream.
@@ -74,24 +74,24 @@ class cuda_stream_view {
   /**
    * @brief Synchronize the viewed CUDA stream.
    *
-   * Calls `cudaStreamSynchronize()`.
+   * Calls `hipStreamSynchronize()`.
    *
    * @throw rmm::cuda_error if stream synchronization fails
    */
-  void synchronize() const { RMM_CUDA_TRY(cudaStreamSynchronize(stream_)); }
+  void synchronize() const { RMM_CUDA_TRY(hipStreamSynchronize(stream_)); }
 
   /**
    * @brief Synchronize the viewed CUDA stream. Does not throw if there is an error.
    *
-   * Calls `cudaStreamSynchronize()` and asserts if there is an error.
+   * Calls `hipStreamSynchronize()` and asserts if there is an error.
    */
   void synchronize_no_throw() const noexcept
   {
-    RMM_ASSERT_CUDA_SUCCESS(cudaStreamSynchronize(stream_));
+    RMM_ASSERT_CUDA_SUCCESS(hipStreamSynchronize(stream_));
   }
 
  private:
-  cudaStream_t stream_{};
+  hipStream_t stream_{};
 };
 
 /**
@@ -108,10 +108,10 @@ static const cuda_stream_view cuda_stream_legacy{
 };
 
 /**
- * @brief Static cuda_stream_view of cudaStreamPerThread, for convenience
+ * @brief Static cuda_stream_view of hipStreamPerThread, for convenience
  */
 static const cuda_stream_view cuda_stream_per_thread{
-  cudaStreamPerThread  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+  hipStreamPerThread  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 };
 
 [[nodiscard]] inline bool cuda_stream_view::is_per_thread_default() const noexcept

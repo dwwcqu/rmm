@@ -24,7 +24,7 @@
 
 namespace rmm::mr {
 /**
- * @brief `device_memory_resource` derived class that uses cudaMalloc/Free for
+ * @brief `device_memory_resource` derived class that uses hipMalloc/Free for
  * allocation/deallocation.
  */
 class cuda_memory_resource final : public device_memory_resource {
@@ -53,7 +53,7 @@ class cuda_memory_resource final : public device_memory_resource {
 
  private:
   /**
-   * @brief Allocates memory of size at least `bytes` using cudaMalloc.
+   * @brief Allocates memory of size at least `bytes` using hipMalloc.
    *
    * The returned pointer has at least 256B alignment.
    *
@@ -67,7 +67,7 @@ class cuda_memory_resource final : public device_memory_resource {
   void* do_allocate(std::size_t bytes, cuda_stream_view) override
   {
     void* ptr{nullptr};
-    RMM_CUDA_TRY_ALLOC(cudaMalloc(&ptr, bytes));
+    RMM_CUDA_TRY_ALLOC(hipMalloc(&ptr, bytes));
     return ptr;
   }
 
@@ -82,7 +82,7 @@ class cuda_memory_resource final : public device_memory_resource {
    */
   void do_deallocate(void* ptr, std::size_t, cuda_stream_view) override
   {
-    RMM_ASSERT_CUDA_SUCCESS(cudaFree(ptr));
+    RMM_ASSERT_CUDA_SUCCESS(hipFree(ptr));
   }
 
   /**
@@ -113,7 +113,7 @@ class cuda_memory_resource final : public device_memory_resource {
   {
     std::size_t free_size{};
     std::size_t total_size{};
-    RMM_CUDA_TRY(cudaMemGetInfo(&free_size, &total_size));
+    RMM_CUDA_TRY(hipMemGetInfo(&free_size, &total_size));
     return std::make_pair(free_size, total_size);
   }
 };

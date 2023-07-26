@@ -25,19 +25,19 @@
 #include <rmm/detail/thrust_namespace.h>
 #include <thrust/optional.h>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <cstddef>
 #include <limits>
 
-#if CUDART_VERSION >= 11020  // 11.2 introduced cudaMallocAsync
+#if CUDART_VERSION >= 11020  // 11.2 introduced hipMallocAsync
 #define RMM_CUDA_MALLOC_ASYNC_SUPPORT
 #endif
 
 namespace rmm::mr {
 
 /**
- * @brief `device_memory_resource` derived class that uses `cudaMallocAsync`/`cudaFreeAsync` for
+ * @brief `device_memory_resource` derived class that uses `hipMallocAsync`/`hipFreeAsync` for
  * allocation/deallocation.
  */
 class cuda_async_view_memory_resource final : public device_memory_resource {
@@ -48,24 +48,24 @@ class cuda_async_view_memory_resource final : public device_memory_resource {
    * The provided pool is not owned by cuda_async_view_memory_resource and must remain valid
    * during the lifetime of the memory resource.
    *
-   * @throws rmm::runtime_error if the CUDA version does not support `cudaMallocAsync`
+   * @throws rmm::runtime_error if the CUDA version does not support `hipMallocAsync`
    *
    * @param valid_pool_handle Handle to a CUDA memory pool which will be used to
    * serve allocation requests.
    */
-  cuda_async_view_memory_resource(cudaMemPool_t valid_pool_handle)
+  cuda_async_view_memory_resource(hipMemPool_t valid_pool_handle)
     : cuda_pool_handle_{[valid_pool_handle]() {
         RMM_EXPECTS(nullptr != valid_pool_handle, "Unexpected null pool handle.");
         return valid_pool_handle;
       }()}
   {
-    // Check if cudaMallocAsync Memory pool supported
+    // Check if hipMallocAsync Memory pool supported
     auto const device = rmm::detail::current_device();
     int cuda_pool_supported{};
     auto result =
-      cudaDeviceGetAttribute(&cuda_pool_supported, cudaDevAttrMemoryPoolsSupported, device.value());
-    RMM_EXPECTS(result == cudaSuccess && cuda_pool_supported,
-                "cudaMallocAsync not supported with this CUDA driver/runtime version");
+      hipDeviceGetAttribute(&cuda_pool_supported, hipDeviceAttributeMemoryPoolsSupported, device.value());
+    RMM_EXPECTS(result == hipSuccess && cuda_pool_supported,
+                "hipMallocAsync not supported with this CUDA driver/runtime version");
   }
 #endif
 
@@ -74,7 +74,7 @@ class cuda_async_view_memory_resource final : public device_memory_resource {
    * @brief Returns the underlying native handle to the CUDA pool
    *
    */
-  [[nodiscard]] cudaMemPool_t pool_handle() const noexcept { return cuda_pool_handle_; }
+  [[nodiscard]] hipMemPool_t pool_handle() const noexcept { return cuda_pool_handle_; }
 #endif
 
   cuda_async_view_memory_resource()                                       = default;
@@ -100,11 +100,11 @@ class cuda_async_view_memory_resource final : public device_memory_resource {
 
  private:
 #ifdef RMM_CUDA_MALLOC_ASYNC_SUPPORT
-  cudaMemPool_t cuda_pool_handle_{};
+  hipMemPool_t cuda_pool_handle_{};
 #endif
 
   /**
-   * @brief Allocates memory of size at least `bytes` using cudaMalloc.
+   * @brief Allocates memory of size at least `bytes` using hipMalloc.
    *
    * The returned pointer has at least 256B alignment.
    *
@@ -118,7 +118,7 @@ class cuda_async_view_memory_resource final : public device_memory_resource {
     void* ptr{nullptr};
 #ifdef RMM_CUDA_MALLOC_ASYNC_SUPPORT
     if (bytes > 0) {
-      RMM_CUDA_TRY_ALLOC(rmm::detail::async_alloc::cudaMallocFromPoolAsync(
+      RMM_CUDA_TRY_ALLOC(rmm::detail::async_alloc::hipMallocFromPoolAsync(
         &ptr, bytes, pool_handle(), stream.value()));
     }
 #else
@@ -139,7 +139,7 @@ class cuda_async_view_memory_resource final : public device_memory_resource {
   {
 #ifdef RMM_CUDA_MALLOC_ASYNC_SUPPORT
     if (ptr != nullptr) {
-      RMM_ASSERT_CUDA_SUCCESS(rmm::detail::async_alloc::cudaFreeAsync(ptr, stream.value()));
+      RMM_ASSERT_CUDA_SUCCESS(rmm::detail::async_alloc::hipFreeAsync(ptr, stream.value()));
     }
 #else
     (void)ptr;

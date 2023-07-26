@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include <rmm/cuda_stream.hpp>
+#include <rmm/hip_stream.hpp>
 #include <rmm/cuda_stream_view.hpp>
 #include <rmm/detail/error.hpp>
 
@@ -32,7 +32,7 @@ namespace rmm {
  * Provides efficient access to collection of CUDA stream objects.
  *
  * Successive calls may return a `cuda_stream_view` of identical streams. For example, a possible
- * implementation is to maintain a circular buffer of `cuda_stream` objects.
+ * implementation is to maintain a circular buffer of `hip_stream` objects.
  */
 class cuda_stream_pool {
  public:
@@ -92,7 +92,7 @@ class cuda_stream_pool {
   std::size_t get_pool_size() const noexcept { return streams_.size(); }
 
  private:
-  std::vector<rmm::cuda_stream> streams_;
+  std::vector<rmm::hip_stream> streams_;
   mutable std::atomic_size_t next_stream{};
 };
 

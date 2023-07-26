@@ -22,7 +22,7 @@
 
 #include <fmt/core.h>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <cstddef>
 #include <functional>
@@ -183,8 +183,8 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
   std::mutex& get_mutex() { return mtx_; }
 
   struct stream_event_pair {
-    cudaStream_t stream;
-    cudaEvent_t event;
+    hipStream_t stream;
+    hipEvent_t event;
 
     bool operator<(stream_event_pair const& rhs) const { return event < rhs.event; }
   };
@@ -247,10 +247,10 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
     size             = rmm::detail::align_up(size, rmm::detail::CUDA_ALLOCATION_ALIGNMENT);
     auto const block = this->underlying().free_block(ptr, size);
 
-    // TODO: cudaEventRecord has significant overhead on deallocations. For the non-PTDS case
+    // TODO: hipEventRecord has significant overhead on deallocations. For the non-PTDS case
     // we may be able to delay recording the event in some situations. But using events rather than
     // streams allows stealing from deleted streams.
-    RMM_ASSERT_CUDA_SUCCESS(cudaEventRecord(stream_event.event, stream.value()));
+    RMM_ASSERT_CUDA_SUCCESS(hipEventRecord(stream_event.event, stream.value()));
 
     stream_free_blocks_[stream_event].insert(block);
 
@@ -264,10 +264,10 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
   struct event_wrapper {
     event_wrapper()
     {
-      RMM_ASSERT_CUDA_SUCCESS(cudaEventCreateWithFlags(&event, cudaEventDisableTiming));
+      RMM_ASSERT_CUDA_SUCCESS(hipEventCreateWithFlags(&event, hipEventDisableTiming));
     }
-    ~event_wrapper() { RMM_ASSERT_CUDA_SUCCESS(cudaEventDestroy(event)); }
-    cudaEvent_t event{};
+    ~event_wrapper() { RMM_ASSERT_CUDA_SUCCESS(hipEventDestroy(event)); }
+    hipEvent_t event{};
 
     event_wrapper(event_wrapper const&) = delete;
     event_wrapper& operator=(event_wrapper const&) = delete;
@@ -306,7 +306,7 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
     return (iter != stream_events_.end()) ? iter->second : [&]() {
       stream_event_pair stream_event{stream_to_store};
       RMM_ASSERT_CUDA_SUCCESS(
-        cudaEventCreateWithFlags(&stream_event.event, cudaEventDisableTiming));
+        hipEventCreateWithFlags(&stream_event.event, hipEventDisableTiming));
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       stream_events_[stream_to_store] = stream_event;
       return stream_event;
@@ -407,7 +407,7 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
         if (block.is_valid()) {
           // Since we found a block associated with a different stream, we have to insert a wait
           // on the stream's associated event into the allocating stream.
-          RMM_CUDA_TRY(cudaStreamWaitEvent(stream_event.stream, other_event, 0));
+          RMM_CUDA_TRY(hipStreamWaitEvent(stream_event.stream, other_event, 0));
           return allocate_and_insert_remainder(block, size, other_blocks);
         }
       }
@@ -437,12 +437,12 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
 
   void merge_lists(stream_event_pair stream_event,
                    free_list& blocks,
-                   cudaEvent_t other_event,
+                   hipEvent_t other_event,
                    free_list&& other_blocks)
   {
     // Since we found a block associated with a different stream, we have to insert a wait
     // on the stream's associated event into the allocating stream.
-    RMM_CUDA_TRY(cudaStreamWaitEvent(stream_event.stream, other_event, 0));
+    RMM_CUDA_TRY(hipStreamWaitEvent(stream_event.stream, other_event, 0));
 
     // Merge the two free lists
     blocks.insert(std::move(other_blocks));
@@ -458,8 +458,8 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
     lock_guard lock(mtx_);
 
     for (auto s_e : stream_events_) {
-      RMM_ASSERT_CUDA_SUCCESS(cudaEventSynchronize(s_e.second.event));
-      RMM_ASSERT_CUDA_SUCCESS(cudaEventDestroy(s_e.second.event));
+      RMM_ASSERT_CUDA_SUCCESS(hipEventSynchronize(s_e.second.event));
+      RMM_ASSERT_CUDA_SUCCESS(hipEventDestroy(s_e.second.event));
     }
 
     stream_events_.clear();
@@ -494,7 +494,7 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
   std::map<stream_event_pair, free_list> stream_free_blocks_;
 
   // bidirectional mapping between non-default streams and events
-  std::unordered_map<cudaStream_t, stream_event_pair> stream_events_;
+  std::unordered_map<hipStream_t, stream_event_pair> stream_events_;
 
   // shared pointers to events keeps the events alive as long as either the thread that created them
   // or the MR that is using them exists.

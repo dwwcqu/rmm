@@ -24,7 +24,7 @@ inline std::pair<std::size_t, std::size_t> available_device_memory()
 {
   std::size_t free{};
   std::size_t total{};
-  RMM_CUDA_TRY(cudaMemGetInfo(&free, &total));
+  RMM_CUDA_TRY(hipMemGetInfo(&free, &total));
   return {free, total};
 }
 

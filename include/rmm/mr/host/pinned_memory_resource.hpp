@@ -25,7 +25,7 @@
 namespace rmm::mr {
 
 /*
- * @brief A `host_memory_resource` that uses `cudaMallocHost` to allocate
+ * @brief A `host_memory_resource` that uses `hipHostMalloc` to allocate
  * pinned/page-locked host memory.
  *
  * See https://devblogs.nvidia.com/how-optimize-data-transfers-cuda-cc/
@@ -64,8 +64,8 @@ class pinned_memory_resource final : public host_memory_resource {
 
     return rmm::detail::aligned_allocate(bytes, alignment, [](std::size_t size) {
       void* ptr{nullptr};
-      auto status = cudaMallocHost(&ptr, size);
-      if (cudaSuccess != status) { throw std::bad_alloc{}; }
+      auto status = hipHostMalloc(&ptr, size);
+      if (hipSuccess != status) { throw std::bad_alloc{}; }
       return ptr;
     });
   }
@@ -91,7 +91,7 @@ class pinned_memory_resource final : public host_memory_resource {
   {
     if (nullptr == ptr) { return; }
     rmm::detail::aligned_deallocate(
-      ptr, bytes, alignment, [](void* ptr) { RMM_ASSERT_CUDA_SUCCESS(cudaFreeHost(ptr)); });
+      ptr, bytes, alignment, [](void* ptr) { RMM_ASSERT_CUDA_SUCCESS(hipHostFree(ptr)); });
   }
 };
 }  // namespace rmm::mr

@@ -30,7 +30,7 @@
 // #pragma nv_exec_check_disable is only recognized by NVCC so verify
 // that we have both the NVCC compiler and we are compiling a CUDA
 // source
-#if defined(__CUDACC__) && defined(__NVCC__)
+#if defined(__HIPCC__) && defined(__NVCC__)
 #define RMM_EXEC_CHECK_DISABLE _Pragma("nv_exec_check_disable")
 #else
 #define RMM_EXEC_CHECK_DISABLE

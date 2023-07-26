@@ -18,7 +18,7 @@
 
 #include <rmm/logger.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <cassert>
 #include <iostream>
@@ -144,7 +144,7 @@ class out_of_range : public std::out_of_range {
  * @brief Error checking macro for CUDA runtime API functions.
  *
  * Invokes a CUDA runtime API function call. If the call does not return
- * `cudaSuccess`, invokes cudaGetLastError() to clear the error and throws an
+ * `hipSuccess`, invokes hipGetLastError() to clear the error and throws an
  * exception detailing the CUDA error that occurred
  *
  * Defaults to throwing `rmm::cuda_error`, but a custom exception may also be
@@ -153,11 +153,11 @@ class out_of_range : public std::out_of_range {
  * Example:
  * ```c++
  *
- * // Throws `rmm::cuda_error` if `cudaMalloc` fails
- * RMM_CUDA_TRY(cudaMalloc(&p, 100));
+ * // Throws `rmm::cuda_error` if `hipMalloc` fails
+ * RMM_CUDA_TRY(hipMalloc(&p, 100));
  *
- * // Throws `std::runtime_error` if `cudaMalloc` fails
- * RMM_CUDA_TRY(cudaMalloc(&p, 100), std::runtime_error);
+ * // Throws `std::runtime_error` if `hipMalloc` fails
+ * RMM_CUDA_TRY(hipMalloc(&p, 100), std::runtime_error);
  * ```
  *
  */
@@ -167,13 +167,13 @@ class out_of_range : public std::out_of_range {
 #define GET_RMM_CUDA_TRY_MACRO(_1, _2, NAME, ...) NAME
 #define RMM_CUDA_TRY_2(_call, _exception_type)                                               \
   do {                                                                                       \
-    cudaError_t const error = (_call);                                                       \
-    if (cudaSuccess != error) {                                                              \
-      cudaGetLastError();                                                                    \
+    hipError_t const error = (_call);                                                       \
+    if (hipSuccess != error) {                                                              \
+      hipGetLastError();                                                                    \
       /*NOLINTNEXTLINE(bugprone-macro-parentheses)*/                                         \
       throw _exception_type{std::string{"CUDA error at: "} + __FILE__ + ":" +                \
-                            RMM_STRINGIFY(__LINE__) + ": " + cudaGetErrorName(error) + " " + \
-                            cudaGetErrorString(error)};                                      \
+                            RMM_STRINGIFY(__LINE__) + ": " + hipGetErrorName(error) + " " + \
+                            hipGetErrorString(error)};                                      \
     }                                                                                        \
   } while (0)
 #define RMM_CUDA_TRY_1(_call) RMM_CUDA_TRY_2(_call, rmm::cuda_error)
@@ -182,20 +182,20 @@ class out_of_range : public std::out_of_range {
  * @brief Error checking macro for CUDA memory allocation calls.
  *
  * Invokes a CUDA memory allocation function call. If the call does not return
- * `cudaSuccess`, invokes cudaGetLastError() to clear the error and throws an
+ * `hipSuccess`, invokes hipGetLastError() to clear the error and throws an
  * exception detailing the CUDA error that occurred
  *
- * Defaults to throwing `rmm::bad_alloc`, but when `cudaErrorMemoryAllocation` is returned,
+ * Defaults to throwing `rmm::bad_alloc`, but when `hipErrorOutOfMemory` is returned,
  * `rmm::out_of_memory` is thrown instead.
  */
 #define RMM_CUDA_TRY_ALLOC(_call)                                                                  \
   do {                                                                                             \
-    cudaError_t const error = (_call);                                                             \
-    if (cudaSuccess != error) {                                                                    \
-      cudaGetLastError();                                                                          \
+    hipError_t const error = (_call);                                                             \
+    if (hipSuccess != error) {                                                                    \
+      hipGetLastError();                                                                          \
       auto const msg = std::string{"CUDA error at: "} + __FILE__ + ":" + RMM_STRINGIFY(__LINE__) + \
-                       ": " + cudaGetErrorName(error) + " " + cudaGetErrorString(error);           \
-      if (cudaErrorMemoryAllocation == error) {                                                    \
+                       ": " + hipGetErrorName(error) + " " + hipGetErrorString(error);           \
+      if (hipErrorOutOfMemory == error) {                                                    \
         throw rmm::out_of_memory{msg};                                                             \
       } else {                                                                                     \
         throw rmm::bad_alloc{msg};                                                                 \
@@ -212,14 +212,14 @@ class out_of_range : public std::out_of_range {
  *
  * In "Release" builds, simply invokes the `_call`.
  *
- * In "Debug" builds, invokes `_call` and uses `assert` to verify the returned `cudaError_t` is
- * equal to `cudaSuccess`.
+ * In "Debug" builds, invokes `_call` and uses `assert` to verify the returned `hipError_t` is
+ * equal to `hipSuccess`.
  *
  *
  * Replaces usecases such as:
  * ```
  * auto status = cudaRuntimeApi(...);
- * assert(status == cudaSuccess);
+ * assert(status == hipSuccess);
  * ```
  *
  * Example:
@@ -236,13 +236,13 @@ class out_of_range : public std::out_of_range {
 #else
 #define RMM_ASSERT_CUDA_SUCCESS(_call)                                          \
   do {                                                                          \
-    cudaError_t const status__ = (_call);                                       \
-    if (status__ != cudaSuccess) {                                              \
-      std::cerr << "CUDA Error detected. " << cudaGetErrorName(status__) << " " \
-                << cudaGetErrorString(status__) << std::endl;                   \
+    hipError_t const status__ = (_call);                                       \
+    if (status__ != hipSuccess) {                                              \
+      std::cerr << "CUDA Error detected. " << hipGetErrorName(status__) << " " \
+                << hipGetErrorString(status__) << std::endl;                   \
     }                                                                           \
     /* NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay) */   \
-    assert(status__ == cudaSuccess);                                            \
+    assert(status__ == hipSuccess);                                            \
   } while (0)
 #endif
 

@@ -20,7 +20,7 @@
 #include <rmm/mr/device/detail/arena.hpp>
 #include <rmm/mr/device/device_memory_resource.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <spdlog/common.h>
 
@@ -166,7 +166,7 @@ class arena_memory_resource final : public device_memory_resource {
    */
   void defragment()
   {
-    RMM_CUDA_TRY(cudaDeviceSynchronize());
+    RMM_CUDA_TRY(hipDeviceSynchronize());
     for (auto& thread_arena : thread_arenas_) {
       thread_arena.second->clean();
     }
@@ -330,7 +330,7 @@ class arena_memory_resource final : public device_memory_resource {
   std::map<std::thread::id, std::shared_ptr<arena>> thread_arenas_;
   /// Arenas for non-default streams, one per stream.
   /// Implementation note: for small sizes, map is more efficient than unordered_map.
-  std::map<cudaStream_t, arena> stream_arenas_;
+  std::map<hipStream_t, arena> stream_arenas_;
   /// If true, dump memory information to log on allocation failure.
   bool dump_log_on_failure_{};
   /// The logger for memory dump.

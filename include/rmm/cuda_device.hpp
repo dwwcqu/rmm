@@ -17,7 +17,7 @@
 
 #include <rmm/detail/error.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 namespace rmm {
 
@@ -53,7 +53,7 @@ namespace detail {
 inline cuda_device_id current_device()
 {
   int dev_id{};
-  RMM_CUDA_TRY(cudaGetDevice(&dev_id));
+  RMM_CUDA_TRY(hipGetDevice(&dev_id));
   return cuda_device_id{dev_id};
 }
 }  // namespace detail

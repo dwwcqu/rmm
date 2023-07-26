@@ -45,15 +45,15 @@ namespace rmm::mr {
  * A call to `allocate(bytes, stream_a)` (on any derived class) returns a pointer that is valid to
  * use on `stream_a`. Using the memory on a different stream (say `stream_b`) is Undefined Behavior
  * unless the two streams are first synchronized, for example by using
- * `cudaStreamSynchronize(stream_a)` or by recording a CUDA event on `stream_a` and then
- * calling `cudaStreamWaitEvent(stream_b, event)`.
+ * `hipStreamSynchronize(stream_a)` or by recording a CUDA event on `stream_a` and then
+ * calling `hipStreamWaitEvent(stream_b, event)`.
  *
  * The stream specified to deallocate() should be a stream on which it is valid to use the
  * deallocated memory immediately for another allocation. Typically this is the stream on which the
  * allocation was *last* used before the call to deallocate(). The passed stream may be used
  * internally by a device_memory_resource for managing available memory with minimal
  * synchronization, and it may also be synchronized at a later time, for example using a call to
- * `cudaStreamSynchronize()`.
+ * `hipStreamSynchronize()`.
  *
  * For this reason, it is Undefined Behavior to destroy a CUDA stream that is passed to
  * deallocate(). If the stream on which the allocation was last used has been destroyed before
@@ -73,7 +73,7 @@ namespace rmm::mr {
  * @code{c++}
  * std::vector<unique_ptr<pool_memory_resource>> per_device_pools;
  * for(int i = 0; i < N; ++i) {
- *   cudaSetDevice(i);
+ *   hipSetDevice(i);
  *   per_device_pools.push_back(std::make_unique<pool_memory_resource>());
  *   set_per_device_resource(cuda_device_id{i}, &per_device_pools.back());
  * }

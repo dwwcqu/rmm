@@ -26,12 +26,12 @@
 #include <rmm/detail/thrust_namespace.h>
 #include <thrust/optional.h>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <cstddef>
 #include <limits>
 
-#if CUDART_VERSION >= 11020  // 11.2 introduced cudaMallocAsync
+#if CUDART_VERSION >= 11020  // 11.2 introduced hipMallocAsync
 #ifndef RMM_DISABLE_CUDA_MALLOC_ASYNC
 #define RMM_CUDA_MALLOC_ASYNC_SUPPORT
 #endif
@@ -40,7 +40,7 @@
 namespace rmm::mr {
 
 /**
- * @brief `device_memory_resource` derived class that uses `cudaMallocAsync`/`cudaFreeAsync` for
+ * @brief `device_memory_resource` derived class that uses `hipMallocAsync`/`hipFreeAsync` for
  * allocation/deallocation.
  */
 class cuda_async_memory_resource final : public device_memory_resource {
@@ -48,11 +48,11 @@ class cuda_async_memory_resource final : public device_memory_resource {
   /**
    * @brief Flags for specifying memory allocation handle types.
    *
-   * @note These values are exact copies from `cudaMemAllocationHandleType`. We need to
+   * @note These values are exact copies from `hipMemAllocationHandleType`. We need to
    * define our own enum here because the earliest CUDA runtime version that supports asynchronous
    * memory pools (CUDA 11.2) did not support these flags, so we need a placeholder that can be
    * used consistently in the constructor of `cuda_async_memory_resource` with all versions of
-   * CUDA >= 11.2. See the `cudaMemAllocationHandleType` docs at
+   * CUDA >= 11.2. See the `hipMemAllocationHandleType` docs at
    * https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__TYPES.html
    */
   enum class allocation_handle_type {
@@ -70,15 +70,15 @@ class cuda_async_memory_resource final : public device_memory_resource {
    * If the pool size grows beyond the release threshold, unused memory held by the pool will be
    * released at the next synchronization event.
    *
-   * @throws rmm::runtime_error if the CUDA version does not support `cudaMallocAsync`
+   * @throws rmm::runtime_error if the CUDA version does not support `hipMallocAsync`
    *
    * @param initial_pool_size Optional initial size in bytes of the pool. If no value is provided,
    * initial pool size is half of the available GPU memory.
    * @param release_threshold Optional release threshold size in bytes of the pool. If no value is
    * provided, the release threshold is set to the total amount of memory on the current device.
-   * @param export_handle_type Optional `cudaMemAllocationHandleType` that allocations from this
+   * @param export_handle_type Optional `hipMemAllocationHandleType` that allocations from this
    * resource should support interprocess communication (IPC). Default is
-   * `cudaMemHandleTypeNone` for no IPC support.
+   * `hipMemHandleTypeNone` for no IPC support.
    */
   // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
   cuda_async_memory_resource(thrust::optional<std::size_t> initial_pool_size             = {},
@@ -86,41 +86,41 @@ class cuda_async_memory_resource final : public device_memory_resource {
                              thrust::optional<allocation_handle_type> export_handle_type = {})
   {
 #ifdef RMM_CUDA_MALLOC_ASYNC_SUPPORT
-    // Check if cudaMallocAsync Memory pool supported
+    // Check if hipMallocAsync Memory pool supported
     RMM_EXPECTS(rmm::detail::async_alloc::is_supported(),
-                "cudaMallocAsync not supported with this CUDA driver/runtime version");
+                "hipMallocAsync not supported with this CUDA driver/runtime version");
 
     // Construct explicit pool
-    cudaMemPoolProps pool_props{};
-    pool_props.allocType   = cudaMemAllocationTypePinned;
-    pool_props.handleTypes = static_cast<cudaMemAllocationHandleType>(
+    hipMemPoolProps pool_props{};
+    pool_props.allocType   = hipMemAllocationTypePinned;
+    pool_props.handleTypes = static_cast<hipMemAllocationHandleType>(
       export_handle_type.value_or(allocation_handle_type::none));
     RMM_EXPECTS(rmm::detail::async_alloc::is_export_handle_type_supported(pool_props.handleTypes),
                 "Requested IPC memory handle type not supported");
-    pool_props.location.type = cudaMemLocationTypeDevice;
+    pool_props.location.type = hipMemLocationTypeDevice;
     pool_props.location.id   = rmm::detail::current_device().value();
-    cudaMemPool_t cuda_pool_handle{};
-    RMM_CUDA_TRY(rmm::detail::async_alloc::cudaMemPoolCreate(&cuda_pool_handle, &pool_props));
+    hipMemPool_t cuda_pool_handle{};
+    RMM_CUDA_TRY(rmm::detail::async_alloc::hipMemPoolCreate(&cuda_pool_handle, &pool_props));
     pool_ = cuda_async_view_memory_resource{cuda_pool_handle};
 
     // CUDA drivers before 11.5 have known incompatibilities with the async allocator.
-    // We'll disable `cudaMemPoolReuseAllowOpportunistic` if cuda driver < 11.5.
+    // We'll disable `hipMemPoolReuseAllowOpportunistic` if cuda driver < 11.5.
     // See https://github.com/NVIDIA/spark-rapids/issues/4710.
     int driver_version{};
-    RMM_CUDA_TRY(cudaDriverGetVersion(&driver_version));
+    RMM_CUDA_TRY(hipDriverGetVersion(&driver_version));
     constexpr auto min_async_version{11050};
     if (driver_version < min_async_version) {
       int disabled{0};
-      RMM_CUDA_TRY(rmm::detail::async_alloc::cudaMemPoolSetAttribute(
-        pool_handle(), cudaMemPoolReuseAllowOpportunistic, &disabled));
+      RMM_CUDA_TRY(rmm::detail::async_alloc::hipMemPoolSetAttribute(
+        pool_handle(), hipMemPoolReuseAllowOpportunistic, &disabled));
     }
 
     auto const [free, total] = rmm::detail::available_device_memory();
 
-    // Need an l-value to take address to pass to cudaMemPoolSetAttribute
+    // Need an l-value to take address to pass to hipMemPoolSetAttribute
     uint64_t threshold = release_threshold.value_or(total);
-    RMM_CUDA_TRY(rmm::detail::async_alloc::cudaMemPoolSetAttribute(
-      pool_handle(), cudaMemPoolAttrReleaseThreshold, &threshold));
+    RMM_CUDA_TRY(rmm::detail::async_alloc::hipMemPoolSetAttribute(
+      pool_handle(), hipMemPoolAttrReleaseThreshold, &threshold));
 
     // Allocate and immediately deallocate the initial_pool_size to prime the pool with the
     // specified size
@@ -129,7 +129,7 @@ class cuda_async_memory_resource final : public device_memory_resource {
     do_deallocate(ptr, pool_size, cuda_stream_default);
 #else
     RMM_FAIL(
-      "cudaMallocAsync not supported by the version of the CUDA Toolkit used for this build");
+      "hipMallocAsync not supported by the version of the CUDA Toolkit used for this build");
 #endif
   }
 
@@ -138,13 +138,13 @@ class cuda_async_memory_resource final : public device_memory_resource {
    * @brief Returns the underlying native handle to the CUDA pool
    *
    */
-  [[nodiscard]] cudaMemPool_t pool_handle() const noexcept { return pool_.pool_handle(); }
+  [[nodiscard]] hipMemPool_t pool_handle() const noexcept { return pool_.pool_handle(); }
 #endif
 
   ~cuda_async_memory_resource() override
   {
 #if defined(RMM_CUDA_MALLOC_ASYNC_SUPPORT)
-    RMM_ASSERT_CUDA_SUCCESS(rmm::detail::async_alloc::cudaMemPoolDestroy(pool_handle()));
+    RMM_ASSERT_CUDA_SUCCESS(rmm::detail::async_alloc::hipMemPoolDestroy(pool_handle()));
 #endif
   }
   cuda_async_memory_resource(cuda_async_memory_resource const&) = delete;
@@ -173,7 +173,7 @@ class cuda_async_memory_resource final : public device_memory_resource {
 #endif
 
   /**
-   * @brief Allocates memory of size at least `bytes` using cudaMalloc.
+   * @brief Allocates memory of size at least `bytes` using hipMalloc.
    *
    * The returned pointer has at least 256B alignment.
    *
