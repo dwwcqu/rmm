@@ -34,7 +34,7 @@
 
 #include <gtest/gtest.h>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -50,12 +50,12 @@ namespace rmm::test {
  */
 inline bool is_device_memory(void* ptr)
 {
-  cudaPointerAttributes attributes{};
-  if (cudaSuccess != cudaPointerGetAttributes(&attributes, ptr)) { return false; }
+  hipPointerAttribute_t attributes{};
+  if (hipSuccess != hipPointerGetAttributes(&attributes, ptr)) { return false; }
 #if CUDART_VERSION < 10000  // memoryType is deprecated in CUDA 10
-  return attributes.memoryType == cudaMemoryTypeDevice;
+  return attributes.memoryType == hipMemoryTypeDevice;
 #else
-  return (attributes.type == cudaMemoryTypeDevice) or (attributes.type == cudaMemoryTypeManaged);
+  return (attributes.type == hipMemoryTypeDevice) or (attributes.type == hipMemoryTypeManaged);
 #endif
 }
 

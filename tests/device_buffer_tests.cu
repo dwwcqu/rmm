@@ -34,7 +34,7 @@ namespace thrust = THRUST_NS_QUALIFIER;
 }
 using namespace testing;
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <cstddef>
 #include <random>
@@ -114,7 +114,7 @@ TYPED_TEST(DeviceBufferTest, ExplicitMemoryResourceStream)
 TYPED_TEST(DeviceBufferTest, CopyFromRawDevicePointer)
 {
   void* device_memory{nullptr};
-  EXPECT_EQ(cudaSuccess, cudaMalloc(&device_memory, this->size));
+  EXPECT_EQ(hipSuccess, hipMalloc(&device_memory, this->size));
   rmm::device_buffer buff(device_memory, this->size, rmm::cuda_stream_view{});
   EXPECT_NE(nullptr, buff.data());
   EXPECT_EQ(this->size, buff.size());
@@ -124,7 +124,7 @@ TYPED_TEST(DeviceBufferTest, CopyFromRawDevicePointer)
 
   // TODO check for equality between the contents of the two allocations
   buff.stream().synchronize();
-  EXPECT_EQ(cudaSuccess, cudaFree(device_memory));
+  EXPECT_EQ(hipSuccess, hipFree(device_memory));
 }
 
 TYPED_TEST(DeviceBufferTest, CopyFromRawHostPointer)
@@ -493,7 +493,7 @@ TYPED_TEST(DeviceBufferTest, SetGetStream)
 
   EXPECT_EQ(buff.stream(), rmm::cuda_stream_default);
 
-  rmm::cuda_stream_view const otherstream{cudaStreamPerThread};
+  rmm::cuda_stream_view const otherstream{hipStreamPerThread};
   buff.set_stream(otherstream);
 
   EXPECT_EQ(buff.stream(), otherstream);

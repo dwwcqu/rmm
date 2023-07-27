@@ -262,7 +262,7 @@ TYPED_TEST(TypedUVectorTest, SetGetStream)
 
   EXPECT_EQ(vec.stream(), this->stream());
 
-  rmm::cuda_stream_view const otherstream{cudaStreamPerThread};
+  rmm::cuda_stream_view const otherstream{hipStreamPerThread};
   vec.set_stream(otherstream);
 
   EXPECT_EQ(vec.stream(), otherstream);

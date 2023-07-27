@@ -19,7 +19,7 @@
 #include <rmm/device_buffer.hpp>
 #include <sstream>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <gtest/gtest-death-test.h>
 #include <gtest/gtest.h>
@@ -43,7 +43,7 @@ TEST_F(CudaStreamTest, Equality)
   rmm::device_buffer buff{};
   EXPECT_EQ(buff.stream(), view_default);
 
-  EXPECT_NE(static_cast<cudaStream_t>(stream_a), rmm::cuda_stream_default.value());
+  EXPECT_NE(static_cast<hipStream_t>(stream_a), rmm::cuda_stream_default.value());
 }
 
 TEST_F(CudaStreamTest, MoveConstructor)
@@ -92,7 +92,7 @@ TEST_F(CudaStreamDeathTest, TestSyncNoThrow)
 {
   auto test = []() {
     rmm::cuda_stream stream_a;
-    cudaStreamDestroy(static_cast<cudaStream_t>(stream_a));
+    hipStreamDestroy(static_cast<hipStream_t>(stream_a));
     // should assert here or in `~cuda_stream()`
     stream_a.synchronize_no_throw();
   };

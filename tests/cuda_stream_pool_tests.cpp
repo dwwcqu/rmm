@@ -20,7 +20,7 @@
 
 #include <gtest/gtest.h>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 struct CudaStreamPoolTest : public ::testing::Test {
   rmm::cuda_stream_pool pool{};
@@ -56,7 +56,7 @@ TEST_F(CudaStreamPoolTest, ValidStreams)
   // Operations on the streams should work correctly and without throwing exceptions
   auto constexpr vector_size{100};
   auto vec1 = rmm::device_uvector<std::uint8_t>{vector_size, stream_a};
-  RMM_CUDA_TRY(cudaMemsetAsync(vec1.data(), 0xcc, 100, stream_a.value()));
+  RMM_CUDA_TRY(hipMemsetAsync(vec1.data(), 0xcc, 100, stream_a.value()));
   stream_a.synchronize();
 
   auto vec2    = rmm::device_uvector<std::uint8_t>{vec1, stream_b};

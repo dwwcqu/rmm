@@ -29,39 +29,39 @@ using cuda_async_view_mr = rmm::mr::cuda_async_view_memory_resource;
 
 TEST(PoolTest, UsePool)
 {
-  cudaMemPool_t memPool{};
-  RMM_CUDA_TRY(rmm::detail::async_alloc::cudaDeviceGetDefaultMemPool(
+  hipMemPool_t memPool{};
+  RMM_CUDA_TRY(rmm::detail::async_alloc::hipDeviceGetDefaultMemPool(
     &memPool, rmm::detail::current_device().value()));
 
   const auto pool_init_size{100};
   cuda_async_view_mr mr{memPool};
   void* ptr = mr.allocate(pool_init_size);
   mr.deallocate(ptr, pool_init_size);
-  RMM_CUDA_TRY(cudaDeviceSynchronize());
+  RMM_CUDA_TRY(hipDeviceSynchronize());
 }
 
 TEST(PoolTest, NotTakingOwnershipOfPool)
 {
-  cudaMemPoolProps poolProps = {};
-  poolProps.allocType        = cudaMemAllocationTypePinned;
+  hipMemPoolProps poolProps = {};
+  poolProps.allocType        = hipMemAllocationTypePinned;
   poolProps.location.id      = rmm::detail::current_device().value();
-  poolProps.location.type    = cudaMemLocationTypeDevice;
+  poolProps.location.type    = hipMemLocationTypeDevice;
 
-  cudaMemPool_t memPool{};
+  hipMemPool_t memPool{};
 
-  RMM_CUDA_TRY(rmm::detail::async_alloc::cudaMemPoolCreate(&memPool, &poolProps));
+  RMM_CUDA_TRY(rmm::detail::async_alloc::hipMemPoolCreate(&memPool, &poolProps));
 
   {
     const auto pool_init_size{100};
     cuda_async_view_mr mr{memPool};
     void* ptr = mr.allocate(pool_init_size);
     mr.deallocate(ptr, pool_init_size);
-    RMM_CUDA_TRY(cudaDeviceSynchronize());
+    RMM_CUDA_TRY(hipDeviceSynchronize());
   }
 
   auto destroy_valid_pool = [&]() {
-    auto result = rmm::detail::async_alloc::cudaMemPoolDestroy(memPool);
-    RMM_EXPECTS(result == cudaSuccess, "Pool wrapper did destroy pool");
+    auto result = rmm::detail::async_alloc::hipMemPoolDestroy(memPool);
+    RMM_EXPECTS(result == hipSuccess, "Pool wrapper did destroy pool");
   };
 
   EXPECT_NO_THROW(destroy_valid_pool());
@@ -70,7 +70,7 @@ TEST(PoolTest, NotTakingOwnershipOfPool)
 TEST(PoolTest, ThrowIfNullptrPool)
 {
   auto construct_mr = []() {
-    cudaMemPool_t memPool{nullptr};
+    hipMemPool_t memPool{nullptr};
     cuda_async_view_mr mr{memPool};
   };
 

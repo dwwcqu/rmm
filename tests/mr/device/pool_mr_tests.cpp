@@ -107,11 +107,11 @@ TEST(PoolTest, ForceGrowth)
 TEST(PoolTest, DeletedStream)
 {
   pool_mr mr{rmm::mr::get_current_device_resource(), 0};
-  cudaStream_t stream{};  // we don't use rmm::cuda_stream here to make destruction more explicit
+  hipStream_t stream{};  // we don't use rmm::cuda_stream here to make destruction more explicit
   const int size = 10000;
-  EXPECT_EQ(cudaSuccess, cudaStreamCreate(&stream));
+  EXPECT_EQ(hipSuccess, hipStreamCreate(&stream));
   EXPECT_NO_THROW(rmm::device_buffer buff(size, cuda_stream_view{stream}, &mr));
-  EXPECT_EQ(cudaSuccess, cudaStreamDestroy(stream));
+  EXPECT_EQ(hipSuccess, hipStreamDestroy(stream));
   EXPECT_NO_THROW(mr.allocate(size));
 }
 

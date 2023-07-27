@@ -30,7 +30,7 @@ class AsyncMRTest : public ::testing::Test {
   void SetUp() override
   {
     if (!rmm::detail::async_alloc::is_supported()) {
-      GTEST_SKIP() << "Skipping tests since cudaMallocAsync not supported with this CUDA "
+      GTEST_SKIP() << "Skipping tests since hipMallocAsync not supported with this CUDA "
                    << "driver/runtime version";
     }
   }
@@ -53,7 +53,7 @@ TEST_F(AsyncMRTest, ExplicitInitialPoolSize)
   cuda_async_mr mr{pool_init_size};
   void* ptr = mr.allocate(pool_init_size);
   mr.deallocate(ptr, pool_init_size);
-  RMM_CUDA_TRY(cudaDeviceSynchronize());
+  RMM_CUDA_TRY(hipDeviceSynchronize());
 }
 
 TEST_F(AsyncMRTest, ExplicitReleaseThreshold)
@@ -63,7 +63,7 @@ TEST_F(AsyncMRTest, ExplicitReleaseThreshold)
   cuda_async_mr mr{pool_init_size, pool_release_threshold};
   void* ptr = mr.allocate(pool_init_size);
   mr.deallocate(ptr, pool_init_size);
-  RMM_CUDA_TRY(cudaDeviceSynchronize());
+  RMM_CUDA_TRY(hipDeviceSynchronize());
 }
 
 TEST_F(AsyncMRTest, DifferentPoolsUnequal)

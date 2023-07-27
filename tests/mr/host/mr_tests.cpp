@@ -21,7 +21,7 @@
 #include <rmm/mr/host/new_delete_resource.hpp>
 #include <rmm/mr/host/pinned_memory_resource.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <gtest/gtest.h>
 
@@ -39,12 +39,12 @@ inline bool is_aligned(void* ptr, std::size_t alignment = alignof(std::max_align
 // Returns true if a pointer points to a device memory or managed memory allocation.
 inline bool is_device_memory(void* ptr)
 {
-  cudaPointerAttributes attributes{};
-  if (cudaSuccess != cudaPointerGetAttributes(&attributes, ptr)) { return false; }
+  hipPointerAttribute_t attributes{};
+  if (hipSuccess != hipPointerGetAttributes(&attributes, ptr)) { return false; }
 #if CUDART_VERSION < 10000  // memoryType is deprecated in CUDA 10
-  return attributes.memoryType == cudaMemoryTypeDevice;
+  return attributes.memoryType == hipMemoryTypeDevice;
 #else
-  return (attributes.type == cudaMemoryTypeDevice) or (attributes.type == cudaMemoryTypeManaged);
+  return (attributes.type == hipMemoryTypeDevice) or (attributes.type == hipMemoryTypeManaged);
 #endif
 }
 
@@ -53,9 +53,9 @@ inline bool is_device_memory(void* ptr)
  */
 inline bool is_pinned_memory(void* ptr)
 {
-  cudaPointerAttributes attributes{};
-  if (cudaSuccess != cudaPointerGetAttributes(&attributes, ptr)) { return false; }
-  return attributes.type == cudaMemoryTypeHost;
+  hipPointerAttribute_t attributes{};
+  if (hipSuccess != hipPointerGetAttributes(&attributes, ptr)) { return false; }
+  return attributes.type == hipMemoryTypeHost;
 }
 
 constexpr std::size_t size_word{4_B};

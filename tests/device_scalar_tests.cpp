@@ -21,7 +21,7 @@
 #include <rmm/mr/device/device_memory_resource.hpp>
 #include <rmm/mr/device/per_device_resource.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <chrono>
 #include <cstddef>
@@ -147,7 +147,7 @@ TYPED_TEST(DeviceScalarTest, SetGetStream)
 
   EXPECT_EQ(scalar.stream(), this->stream);
 
-  rmm::cuda_stream_view const otherstream{cudaStreamPerThread};
+  rmm::cuda_stream_view const otherstream{hipStreamPerThread};
   scalar.set_stream(otherstream);
 
   EXPECT_EQ(scalar.stream(), otherstream);
