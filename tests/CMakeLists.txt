@@ -30,7 +30,6 @@ function(ConfigureTestInternal TEST_NAME)
     ${TEST_NAME}
     PROPERTIES POSITION_INDEPENDENT_CODE ON
                RUNTIME_OUTPUT_DIRECTORY "$<BUILD_INTERFACE:${RMM_BINARY_DIR}/gtests>"
-               CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
                INSTALL_RPATH "\$ORIGIN/../../../lib")
   target_compile_definitions(${TEST_NAME}
                              PUBLIC "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${RMM_LOGGING_LEVEL}")
@@ -132,7 +131,7 @@ ConfigureTest(POOL_MR_TEST mr/device/pool_mr_tests.cpp GPUS 1 PERCENT 60)
 ConfigureTest(CUDA_ASYNC_MR_TEST mr/device/cuda_async_mr_tests.cpp GPUS 1 PERCENT 60)
 
 # thrust allocator tests
-ConfigureTest(THRUST_ALLOCATOR_TEST mr/device/thrust_allocator_tests.cu GPUS 1 PERCENT 60)
+ConfigureTest(THRUST_ALLOCATOR_TEST mr/device/thrust_allocator_tests.cpp GPUS 1 PERCENT 60)
 
 # polymorphic allocator tests
 ConfigureTest(POLYMORPHIC_ALLOCATOR_TEST mr/device/polymorphic_allocator_tests.cpp)
@@ -162,7 +161,7 @@ ConfigureTest(HOST_MR_TEST mr/host/mr_tests.cpp)
 ConfigureTest(CUDA_STREAM_TEST cuda_stream_tests.cpp cuda_stream_pool_tests.cpp)
 
 # device buffer tests
-ConfigureTest(DEVICE_BUFFER_TEST device_buffer_tests.cu)
+ConfigureTest(DEVICE_BUFFER_TEST device_buffer_tests.cpp)
 
 # device scalar tests
 ConfigureTest(DEVICE_SCALAR_TEST device_scalar_tests.cpp)
