@@ -135,6 +135,7 @@ struct async_alloc {
   static bool is_export_handle_type_supported(hipMemAllocationHandleType handle_type)
   {
     int supported_handle_types_bitmask{};
+#ifdef __HIP_PLATFORM_NVIDIA__
 #if CUDART_VERSION >= 11030  // 11.3 introduced cudaDevAttrMemoryPoolSupportedHandleTypes
     if (hipMemHandleTypeNone != handle_type) {
       auto const result = hipDeviceGetAttribute(&supported_handle_types_bitmask,
@@ -148,6 +149,7 @@ struct async_alloc {
       RMM_CUDA_TRY(result);
     }
 
+#endif
 #endif
     return (supported_handle_types_bitmask & handle_type) == handle_type;
   }

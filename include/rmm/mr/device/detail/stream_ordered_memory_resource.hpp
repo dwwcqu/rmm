@@ -23,7 +23,11 @@
 #include <fmt/core.h>
 
 #include <hip/hip_runtime_api.h>
-
+#ifdef __HIP_PLATFORM_AMD__
+  #ifndef hipStreamLegacy
+    #define hipStreamLegacy ((hipStream_t)0x01)
+  #endif
+#endif
 #include <cstddef>
 #include <functional>
 #include <limits>
@@ -294,13 +298,13 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
       default_stream_events.insert(event_tls);
       return stream_event_pair{stream.value(), event_tls->event};
     }
-    // We use cudaStreamLegacy as the event map key for the default stream for consistency between
-    // PTDS and non-PTDS mode. In PTDS mode, the cudaStreamLegacy map key will only exist if the
+    // We use hipStreamLegacy as the event map key for the default stream for consistency between
+    // PTDS and non-PTDS mode. In PTDS mode, the hipStreamLegacy map key will only exist if the
     // user explicitly passes it, so it is used as the default location for the free list
     // at construction. For consistency, the same key is used for null stream free lists in non-PTDS
     // mode.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-    auto* const stream_to_store = stream.is_default() ? cudaStreamLegacy : stream.value();
+    auto* const stream_to_store = stream.is_default() ? hipStreamLegacy : stream.value();
 
     auto const iter = stream_events_.find(stream_to_store);
     return (iter != stream_events_.end()) ? iter->second : [&]() {

@@ -19,7 +19,11 @@
 #include <rmm/detail/error.hpp>
 
 #include <hip/hip_runtime_api.h>
-
+#ifdef __HIP_PLATFORM_AMD__
+  #ifndef hipStreamLegacy
+    #define hipStreamLegacy ((hipStream_t)0x01)
+  #endif
+#endif
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -100,11 +104,11 @@ class cuda_stream_view {
 static constexpr cuda_stream_view cuda_stream_default{};
 
 /**
- * @brief Static cuda_stream_view of cudaStreamLegacy, for convenience
+ * @brief Static cuda_stream_view of hipStreamLegacy, for convenience
  */
 
 static const cuda_stream_view cuda_stream_legacy{
-  cudaStreamLegacy  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+  hipStreamLegacy  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 };
 
 /**
