@@ -20,7 +20,7 @@
  */
 
 /**
- * @brief  This class serves as a wrapper for using `cudaEvent_t` as the user
+ * @brief  This class serves as a wrapper for using `hipEvent_t` as the user
  * defined timer within the framework of google benchmark
  * (https://github.com/google/benchmark).
  *
@@ -33,12 +33,12 @@
 
       for (auto _ : state){
 
-        cudaStream_t stream = 0;
+        hipStream_t stream = 0;
 
         // Create (Construct) an object of this class. You HAVE to pass in the
         // benchmark::State object you are using. It measures the time from its
         // creation to its destruction that is spent on the specified CUDA stream.
-        // It also clears the L2 cache by cudaMemset'ing a device buffer that is of
+        // It also clears the L2 cache by hipMemset'ing a device buffer that is of
         // the size of the L2 cache (if flush_l2_cache is set to true and there is
         // an L2 cache on the current device).
         cuda_event_timer raii(state, true, stream); // flush_l2_cache = true
@@ -62,12 +62,12 @@
 
 // Google Benchmark library
 #include <benchmark/benchmark.h>
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 class cuda_event_timer {
  public:
   /**
-   * @brief This c'tor clears the L2$ by cudaMemset'ing a buffer of L2$ size
+   * @brief This c'tor clears the L2$ by hipMemset'ing a buffer of L2$ size
    * and starts the timer.
    *
    * @param[in,out] state  This is the benchmark::State whose timer we are going
@@ -86,7 +86,7 @@ class cuda_event_timer {
 
   // The d'tor stops the timer and performs a synchroniazation.
   // Time of the benchmark::State object provided to the c'tor
-  // will be set to the value given by `cudaEventElapsedTime`.
+  // will be set to the value given by `hipEventElapsedTime`.
   ~cuda_event_timer();
 
   // disable copy and move
@@ -96,8 +96,8 @@ class cuda_event_timer {
   cuda_event_timer& operator=(cuda_event_timer&&) = delete;
 
  private:
-  cudaEvent_t start{};
-  cudaEvent_t stop{};
+  hipEvent_t start{};
+  hipEvent_t stop{};
   rmm::cuda_stream_view stream{};
   benchmark::State* p_state{};
 };

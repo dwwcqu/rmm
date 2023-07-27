@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*
  * Copyright (c) 2020-2022, NVIDIA CORPORATION.
  *
@@ -27,7 +28,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <thrust/device_vector.h>
 #include <thrust/memory.h>
@@ -43,7 +44,7 @@ void BM_UvectorSizeConstruction(benchmark::State& state)
 
   for (auto _ : state) {  // NOLINT(clang-analyzer-deadcode.DeadStores)
     rmm::device_uvector<std::int32_t> vec(state.range(0), rmm::cuda_stream_view{});
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
   }
 
   state.SetItemsProcessed(static_cast<std::int64_t>(state.iterations()));
@@ -64,7 +65,7 @@ void BM_ThrustVectorSizeConstruction(benchmark::State& state)
 
   for (auto _ : state) {  // NOLINT(clang-analyzer-deadcode.DeadStores)
     rmm::device_vector<std::int32_t> vec(state.range(0));
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
   }
 
   state.SetItemsProcessed(static_cast<std::int64_t>(state.iterations()));
@@ -102,7 +103,7 @@ Vector make_vector(std::int64_t num_elements, rmm::cuda_stream_view stream, bool
   } else if constexpr (std::is_same_v<Vector, rmm_uvector>) {
     auto vec = Vector(num_elements, stream);
     if (zero_init) {
-      cudaMemsetAsync(vec.data(), 0, num_elements * sizeof(std::int32_t), stream.value());
+      hipMemsetAsync(vec.data(), 0, num_elements * sizeof(std::int32_t), stream.value());
     }
     return vec;
   }
@@ -166,7 +167,7 @@ BENCHMARK_TEMPLATE(BM_VectorWorkflow, thrust_vector)  // NOLINT
   ->UseManualTime();
 
 // The only difference here is that `rmm::device_vector` uses `rmm::current_device_resource()`
-// for allocation while `thrust::device_vector` uses cudaMalloc/cudaFree. In the benchmarks we use
+// for allocation while `thrust::device_vector` uses hipMalloc/hipFree. In the benchmarks we use
 // `cuda_async_memory_resource`, which is faster.
 BENCHMARK_TEMPLATE(BM_VectorWorkflow, rmm_vector)  // NOLINT
   ->RangeMultiplier(10)                            // NOLINT

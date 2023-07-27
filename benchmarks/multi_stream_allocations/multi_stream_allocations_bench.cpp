@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*
  * Copyright (c) 2021, NVIDIA CORPORATION.
  *
@@ -27,7 +28,7 @@
 #include <rmm/mr/device/per_device_resource.hpp>
 #include <rmm/mr/device/pool_memory_resource.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <benchmark/benchmark.h>
 
@@ -86,7 +87,7 @@ static void BM_MultiStreamAllocations(benchmark::State& state, MRFactoryFunc con
 
   for (auto _ : state) {  // NOLINT(clang-analyzer-deadcode.DeadStores)
     run_test(num_kernels, stream_pool, mr.get());
-    cudaDeviceSynchronize();
+    hipDeviceSynchronize();
   }
 
   state.SetItemsProcessed(static_cast<int64_t>(state.iterations() * num_kernels));

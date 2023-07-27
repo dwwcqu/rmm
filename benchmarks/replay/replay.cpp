@@ -249,8 +249,8 @@ std::vector<std::vector<rmm::detail::event>> parse_per_thread_events(std::string
   RMM_EXPECTS(std::all_of(all_events.begin(),
                           all_events.end(),
                           [](auto const& event) {
-                            cudaStream_t custream;
-                            memcpy(&custream, &event.stream, sizeof(cudaStream_t));
+                            hipStream_t custream;
+                            memcpy(&custream, &event.stream, sizeof(hipStream_t));
                             auto stream = rmm::cuda_stream_view{custream};
                             return stream.is_default() or stream.is_per_thread_default();
                           }),

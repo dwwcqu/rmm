@@ -17,7 +17,7 @@
 #include <rmm/cuda_stream_pool.hpp>
 #include <rmm/detail/error.hpp>
 
-#include <cuda_runtime_api.h>
+#include <hip/hip_runtime_api.h>
 
 #include <benchmark/benchmark.h>
 
@@ -29,7 +29,7 @@ static void BM_StreamPoolGetStream(benchmark::State& state)
 
   for (auto _ : state) {  // NOLINT(clang-analyzer-deadcode.DeadStores)
     auto stream = stream_pool.get_stream();
-    cudaStreamQuery(stream.value());
+    hipStreamQuery(stream.value());
   }
 
   state.SetItemsProcessed(static_cast<int64_t>(state.iterations()));
@@ -40,7 +40,7 @@ static void BM_CudaStreamClass(benchmark::State& state)
 {
   for (auto _ : state) {  // NOLINT(clang-analyzer-deadcode.DeadStores)
     auto stream = rmm::cuda_stream{};
-    cudaStreamQuery(stream.view().value());
+    hipStreamQuery(stream.view().value());
   }
 
   state.SetItemsProcessed(static_cast<int64_t>(state.iterations()));

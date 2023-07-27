@@ -23,8 +23,8 @@
 #else
 #define RMM_CUDA_ASSERT_OK(expr)       \
   do {                                 \
-    cudaError_t const status = (expr); \
-    assert(cudaSuccess == status);     \
+    hipError_t const status = (expr); \
+    assert(hipSuccess == status);     \
   } while (0);
 #endif
 
@@ -36,33 +36,33 @@ cuda_event_timer::cuda_event_timer(benchmark::State& state,
   // flush all of L2$
   if (flush_l2_cache) {
     int current_device = 0;
-    RMM_CUDA_TRY(cudaGetDevice(&current_device));
+    RMM_CUDA_TRY(hipGetDevice(&current_device));
 
     int l2_cache_bytes = 0;
-    RMM_CUDA_TRY(cudaDeviceGetAttribute(&l2_cache_bytes, cudaDevAttrL2CacheSize, current_device));
+    RMM_CUDA_TRY(hipDeviceGetAttribute(&l2_cache_bytes, hipDeviceAttributeL2CacheSize, current_device));
 
     if (l2_cache_bytes > 0) {
       const int memset_value = 0;
       rmm::device_buffer l2_cache_buffer(l2_cache_bytes, stream);
       RMM_CUDA_TRY(
-        cudaMemsetAsync(l2_cache_buffer.data(), memset_value, l2_cache_bytes, stream.value()));
+        hipMemsetAsync(l2_cache_buffer.data(), memset_value, l2_cache_bytes, stream.value()));
     }
   }
 
-  RMM_CUDA_TRY(cudaEventCreate(&start));
-  RMM_CUDA_TRY(cudaEventCreate(&stop));
-  RMM_CUDA_TRY(cudaEventRecord(start, stream.value()));
+  RMM_CUDA_TRY(hipEventCreate(&start));
+  RMM_CUDA_TRY(hipEventCreate(&stop));
+  RMM_CUDA_TRY(hipEventRecord(start, stream.value()));
 }
 
 cuda_event_timer::~cuda_event_timer()
 {
-  RMM_CUDA_ASSERT_OK(cudaEventRecord(stop, stream.value()));
-  RMM_CUDA_ASSERT_OK(cudaEventSynchronize(stop));
+  RMM_CUDA_ASSERT_OK(hipEventRecord(stop, stream.value()));
+  RMM_CUDA_ASSERT_OK(hipEventSynchronize(stop));
 
   float milliseconds = 0.0F;
-  RMM_CUDA_ASSERT_OK(cudaEventElapsedTime(&milliseconds, start, stop));
+  RMM_CUDA_ASSERT_OK(hipEventElapsedTime(&milliseconds, start, stop));
   const auto to_milliseconds{1.0F / 1000};
   p_state->SetIterationTime(milliseconds * to_milliseconds);
-  RMM_CUDA_ASSERT_OK(cudaEventDestroy(start));
-  RMM_CUDA_ASSERT_OK(cudaEventDestroy(stop));
+  RMM_CUDA_ASSERT_OK(hipEventDestroy(start));
+  RMM_CUDA_ASSERT_OK(hipEventDestroy(stop));
 }
