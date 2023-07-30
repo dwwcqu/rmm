@@ -33,7 +33,7 @@ function(ConfigureTestInternal TEST_NAME)
                INSTALL_RPATH "\$ORIGIN/../../../lib")
   target_compile_definitions(${TEST_NAME}
                              PUBLIC "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${RMM_LOGGING_LEVEL}")
-  target_compile_options(${TEST_NAME} PUBLIC $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall -Werror
+  target_compile_options(${TEST_NAME} PUBLIC $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall -Wno-unused-result
                                              -Wno-error=deprecated-declarations>)
 
   if(DISABLE_DEPRECATION_WARNING)
@@ -56,8 +56,7 @@ function(ConfigureTestInternal TEST_NAME)
           $<$<COMPILE_LANGUAGE:CUDA>:-O0
           -Xcompiler=--coverage,-fprofile-abs-path,-fkeep-inline-functions,-fno-elide-constructors>)
       target_compile_options(
-        ${TEST_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-O0 --coverage -fprofile-abs-path
-                            -fkeep-inline-functions -fno-elide-constructors>)
+        ${TEST_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-O0 --coverage>)
       target_link_options(${TEST_NAME} PRIVATE --coverage)
       target_link_libraries(${TEST_NAME} gcov)
     endif()

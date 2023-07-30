@@ -15,7 +15,7 @@
 cmake_minimum_required(VERSION 3.23.1 FATAL_ERROR)
 
 if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/RMM_RAPIDS.cmake)
-  file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-23.04/RAPIDS.cmake
+  file(DOWNLOAD https://raw.githubusercontent.com/dwwcqu/rapids-cmake/port/v23.04.00/RAPIDS.cmake
        ${CMAKE_CURRENT_BINARY_DIR}/RMM_RAPIDS.cmake)
 endif()
 include(${CMAKE_CURRENT_BINARY_DIR}/RMM_RAPIDS.cmake)
@@ -49,18 +49,23 @@ set_property(CACHE RMM_LOGGING_LEVEL PROPERTY STRINGS "TRACE" "DEBUG" "INFO" "WA
 # build type for cmake-gui
 message(STATUS "RMM: RMM_LOGGING_LEVEL = '${RMM_LOGGING_LEVEL}'")
 
-# cudart can be statically linked or dynamically linked the python ecosystem wants dynamic linking
-option(CUDA_STATIC_RUNTIME "Statically link the CUDA runtime" OFF)
-
 # find packages we depend on
+list(APPEND CMAKE_PREFIX_PATH "/opt/rocm")
 rapids_find_package(
-  CUDAToolkit REQUIRED
+  hip REQUIRED
   BUILD_EXPORT_SET rmm-exports
   INSTALL_EXPORT_SET rmm-exports)
 rapids_cpm_init()
 include(cmake/thirdparty/get_fmt.cmake)
 include(cmake/thirdparty/get_spdlog.cmake)
-include(cmake/thirdparty/get_thrust.cmake)
+rapids_find_package(
+  rocprim REQUIRED
+  BUILD_EXPORT_SET rmm-exports
+  INSTALL_EXPORT_SET rmm-exports)
+rapids_find_package(
+  rocthrust REQUIRED
+  BUILD_EXPORT_SET rmm-exports
+  INSTALL_EXPORT_SET rmm-exports)
 
 # library targets
 add_library(rmm INTERFACE)
@@ -69,29 +74,22 @@ add_library(rmm::rmm ALIAS rmm)
 target_include_directories(rmm INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
                                          "$<INSTALL_INTERFACE:include>")
 
-if(CUDA_STATIC_RUNTIME)
-  message(STATUS "RMM: Enabling static linking of cudart")
-  target_link_libraries(rmm INTERFACE CUDA::cudart_static)
-  target_compile_definitions(rmm INTERFACE RMM_STATIC_CUDART)
-else()
-  target_link_libraries(rmm INTERFACE CUDA::cudart)
-endif()
+target_link_libraries(rmm INTERFACE hip::host)
 
-target_link_libraries(rmm INTERFACE rmm::Thrust)
+target_link_libraries(rmm INTERFACE roc::rocthrust)
 target_link_libraries(rmm INTERFACE fmt::fmt-header-only)
 target_link_libraries(rmm INTERFACE spdlog::spdlog_header_only)
 target_link_libraries(rmm INTERFACE dl)
-target_compile_features(rmm INTERFACE cxx_std_17 $<BUILD_INTERFACE:cuda_std_17>)
+target_compile_features(rmm INTERFACE cxx_std_17)
 
 if((BUILD_TESTS OR BUILD_BENCHMARKS) AND CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-  include(rapids-cuda)
-  rapids_cuda_init_architectures(RMM)
-  enable_language(CUDA)
+  include(rapids-hip)
 
   # Since RMM only enables CUDA optionally we need to manually include the file that
   # rapids_cuda_init_architectures relies on `project` calling
-  include("${CMAKE_PROJECT_RMM_INCLUDE}")
-  message(STATUS "RMM: Building benchmarks with GPU Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+  # include("${CMAKE_PROJECT_RMM_INCLUDE}")
+  message(STATUS "RMM: Building benchmarks with GPU Architectures: ${RAPIDS_ROCM_ARCH}")
+  set(AMDGPU_TARGETS ${RAPIDS_ROCM_ARCH} CACHE STRING "The ROCm GPU architecture list")
 endif()
 
 # optionally build tests
@@ -134,9 +132,6 @@ The goal of the [RMM](https://github.com/rapidsai/rmm) is to provide:
 
 set(code_string
     [=[
-if(NOT TARGET rmm::Thrust)
-  thrust_create_target(rmm::Thrust FROM_OPTIONS)
-endif()
 ]=])
 
 rapids_export(
