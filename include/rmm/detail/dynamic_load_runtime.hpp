@@ -38,9 +38,9 @@ struct dynamic_load_runtime {
     auto close_cudart = [](void* handle) { ::dlclose(handle); };
     auto open_cudart  = []() {
       ::dlerror();
-      const int major               = CUDART_VERSION / 1000;
-      const std::string libname_ver = "libcudart.so." + std::to_string(major) + ".0";
-      const std::string libname     = "libcudart.so";
+      const int major               = HIP_VERSION_MAJOR;
+      const std::string libname_ver = "libamdhip.so." + std::to_string(major);
+      const std::string libname     = "libamdhip.so";
 
       auto ptr = ::dlopen(libname_ver.c_str(), RTLD_LAZY);
       if (!ptr) { ptr = ::dlopen(libname.c_str(), RTLD_LAZY); }
@@ -91,7 +91,7 @@ struct dynamic_load_runtime {
   }
 #endif
 
-#if CUDART_VERSION >= 11020  // 11.2 introduced hipMallocAsync
+#if HIP_VERSION_MAJOR >= 5 && HIP_VERSION_MINOR >= 2 // ROCm 5.2 introduced hipMallocAsync
 /**
  * @brief Bind to the stream-ordered memory allocator functions
  * at runtime.

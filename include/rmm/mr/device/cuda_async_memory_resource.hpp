@@ -31,7 +31,7 @@
 #include <cstddef>
 #include <limits>
 
-#if CUDART_VERSION >= 11020  // 11.2 introduced hipMallocAsync
+#if HIP_VERSION_MAJOR >= 5 &&  HIP_VERSION_MINOR >= 2 // 11.2 introduced hipMallocAsync
 #ifndef RMM_DISABLE_CUDA_MALLOC_ASYNC
 #define RMM_CUDA_MALLOC_ASYNC_SUPPORT
 #endif
