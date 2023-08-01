@@ -21,7 +21,7 @@
 #include <hip/hip_runtime_api.h>
 #ifdef __HIP_PLATFORM_AMD__
   #ifndef hipStreamLegacy
-    #define hipStreamLegacy ((hipStream_t)0x01)
+    #define hipStreamLegacy ((hipStream_t)0x0)
   #endif
 #endif
 #include <atomic>

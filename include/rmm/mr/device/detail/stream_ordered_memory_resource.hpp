@@ -23,11 +23,7 @@
 #include <fmt/core.h>
 
 #include <hip/hip_runtime_api.h>
-#ifdef __HIP_PLATFORM_AMD__
-  #ifndef hipStreamLegacy
-    #define hipStreamLegacy ((hipStream_t)0x01)
-  #endif
-#endif
+
 #include <cstddef>
 #include <functional>
 #include <limits>
@@ -263,7 +259,7 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
 
  private:
   /**
-   * @brief RAII wrapper for a CUDA event.
+   * @brief RAII wrapper for a HIP event.
    */
   struct event_wrapper {
     event_wrapper()
@@ -280,7 +276,7 @@ class stream_ordered_memory_resource : public crtp<PoolResource>, public device_
   };
 
   /**
-   * @brief get a unique CUDA event (possibly new) associated with `stream`
+   * @brief get a unique HIP event (possibly new) associated with `stream`
    *
    * The event is created on the first call, and it is not recorded. If compiled for per-thread
    * default stream and `stream` is the default stream, the event is created in thread local

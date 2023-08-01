@@ -35,7 +35,9 @@ function(ConfigureTestInternal TEST_NAME)
                              PUBLIC "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_${RMM_LOGGING_LEVEL}")
   target_compile_options(${TEST_NAME} PUBLIC $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall -Wno-unused-result
                                              -Wno-error=deprecated-declarations>)
-
+  if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    target_compile_options(${TEST_NAME} PUBLIC -O0)
+  endif()
   if(DISABLE_DEPRECATION_WARNING)
     target_compile_options(
       ${TEST_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wno-deprecated-declarations>)
@@ -101,7 +103,7 @@ function(ConfigureTest TEST_NAME)
   # Test with custom thrust namespace
   string(REGEX REPLACE "_TEST$" "_NAMESPACE_TEST" NS_TEST_NAME "${TEST_NAME}")
   ConfigureTestInternal("${NS_TEST_NAME}" ${_RMM_TEST_UNPARSED_ARGUMENTS})
-  target_compile_definitions("${NS_TEST_NAME}" PUBLIC THRUST_WRAPPED_NAMESPACE=rmm_thrust)
+  # target_compile_definitions("${NS_TEST_NAME}" PUBLIC THRUST_WRAPPED_NAMESPACE=rmm_thrust)
 
   foreach(name ${TEST_NAME} ${PTDS_TEST_NAME} ${NS_TEST_NAME})
     rapids_test_add(

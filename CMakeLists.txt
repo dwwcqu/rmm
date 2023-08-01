@@ -75,7 +75,7 @@ target_include_directories(rmm INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOUR
                                          "$<INSTALL_INTERFACE:include>")
 
 target_link_libraries(rmm INTERFACE hip::host)
-
+target_link_libraries(rmm INTERFACE roc::rocprim_hip)
 target_link_libraries(rmm INTERFACE roc::rocthrust)
 target_link_libraries(rmm INTERFACE fmt::fmt-header-only)
 target_link_libraries(rmm INTERFACE spdlog::spdlog_header_only)

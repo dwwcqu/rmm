@@ -48,7 +48,7 @@ namespace rmm {
  * rmm::device_uvector<int> uv(100, s, mr);
  *
  * // Initializes all elements to 0 on stream `s`
- * thrust::uninitialized_fill(thrust::cuda::par.on(s), uv.begin(), uv.end(), 0);
+ * thrust::uninitialized_fill(thrust::hip::par.on(s), uv.begin(), uv.end(), 0);
  * @endcode
  *
  * Avoiding default initialization improves performance by eliminating the kernel launch required to

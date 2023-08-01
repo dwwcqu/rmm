@@ -41,11 +41,7 @@ inline bool is_device_memory(void* ptr)
 {
   hipPointerAttribute_t attributes{};
   if (hipSuccess != hipPointerGetAttributes(&attributes, ptr)) { return false; }
-#if CUDART_VERSION < 10000  // memoryType is deprecated in CUDA 10
-  return attributes.memoryType == hipMemoryTypeDevice;
-#else
-  return (attributes.type == hipMemoryTypeDevice) or (attributes.type == hipMemoryTypeManaged);
-#endif
+  return attributes.memoryType == hipMemoryTypeDevice || attributes.isManaged;
 }
 
 /**
@@ -55,7 +51,7 @@ inline bool is_pinned_memory(void* ptr)
 {
   hipPointerAttribute_t attributes{};
   if (hipSuccess != hipPointerGetAttributes(&attributes, ptr)) { return false; }
-  return attributes.type == hipMemoryTypeHost;
+  return attributes.memoryType == hipMemoryTypeHost;
 }
 
 constexpr std::size_t size_word{4_B};

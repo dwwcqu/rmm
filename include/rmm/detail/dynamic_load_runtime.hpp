@@ -39,8 +39,8 @@ struct dynamic_load_runtime {
     auto open_cudart  = []() {
       ::dlerror();
       const int major               = HIP_VERSION_MAJOR;
-      const std::string libname_ver = "libamdhip.so." + std::to_string(major);
-      const std::string libname     = "libamdhip.so";
+      const std::string libname_ver = "libamdhip64.so." + std::to_string(major);
+      const std::string libname     = "libamdhip64.so";
 
       auto ptr = ::dlopen(libname_ver.c_str(), RTLD_LAZY);
       if (!ptr) { ptr = ::dlopen(libname.c_str(), RTLD_LAZY); }

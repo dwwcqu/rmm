@@ -213,7 +213,7 @@ void deallocate_loop(rmm::mr::device_memory_resource* mr,
   for (std::size_t i = 0; i < num_allocations; i++) {
     std::unique_lock lock(mtx);
     allocations_ready.wait(lock, [&allocations] { return !allocations.empty(); });
-    RMM_CUDA_TRY(hipStreamWaitEvent(stream.value(), event));
+    RMM_CUDA_TRY(hipStreamWaitEvent(stream.value(), event, 0));
     allocation alloc = allocations.front();
     allocations.pop_front();
     mr->deallocate(alloc.ptr, alloc.size, stream);
